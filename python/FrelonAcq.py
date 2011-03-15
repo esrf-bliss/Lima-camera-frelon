@@ -394,12 +394,11 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def setTriggerMode(self, trig_mode):
         deb.Param('Setting trigger mode: %s' % trig_mode)
-        exp_time = prev_exp_time = self.m_ct_acq.getAcqExpoTime()
-        if trig_mode == IntTrig and prev_exp_time == 0:
-            exp_time = 1.0
+        prev_trig_mode = self.m_ct_acq.getTriggerMode()
+        set_exp_time = ((trig_mode == IntTrig) and (prev_trig_mode == ExtGate))
         self.m_ct_acq.setTriggerMode(trig_mode)
-        if exp_time != prev_exp_time:
-            self.m_ct_acq.setAcqExpoTime(exp_time)
+        if set_exp_time:
+            self.m_ct_acq.setAcqExpoTime(1.0)
     
     @DEB_MEMBER_FUNCT
     def getTriggerMode(self):
@@ -421,11 +420,6 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def setExpTime(self, exp_time):
         deb.Param('Setting exp. time: %s' % exp_time)
-        trig_mode = self.m_ct_acq.getTriggerMode()
-        if exp_time == 0 and trig_mode == ExtTrigSingle:
-            self.m_ct_acq.setTriggerMode(ExtGate)
-        elif exp_time > 0 and trig_mode == ExtGate:
-            self.m_ct_acq.setTriggerMode(ExtTrigSingle)
         self.m_ct_acq.setAcqExpoTime(exp_time)
     
     @DEB_MEMBER_FUNCT

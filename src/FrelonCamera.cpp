@@ -949,6 +949,12 @@ void Camera::setTrigMode(TrigMode trig_mode)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(trig_mode);
 	m_trig_mode = trig_mode;
+	double exp_time;
+	getExpTime(exp_time);
+	if ((trig_mode == ExtGate) && (exp_time != 0))
+		setExpTime(0);
+	else if ((trig_mode != ExtGate) && (exp_time == 0)) 
+		setExpTime(1);
 	setNbFrames(m_nb_frames);
 }
 
@@ -980,6 +986,14 @@ void Camera::setExpTime(double exp_time)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(exp_time);
+
+	TrigMode trig_mode;
+	getTrigMode(trig_mode);
+	if ((trig_mode == ExtGate) && (exp_time != 0)) {
+		DEB_TRACE() << "Ignoring " << DEB_VAR1(exp_time) 
+			    << " in ExtGate trigger mode";
+		return;
+	}
 
 	bool ok = false;
 	int exp_val;
