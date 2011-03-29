@@ -438,11 +438,17 @@ class FrelonAcq:
         file_par = self.m_ct_saving.getParameters()
         deb.Return('Getting file par: %s' % file_par)
         return file_par
+
+    @DEB_MEMBER_FUNCT
+    def setCommonFileHeader(self, header_map):
+        deb.Param('Setting common file header: %d keys' % len(header_map))
+        self.m_ct_saving.setCommonHeader(header_map)
         
     @DEB_MEMBER_FUNCT
     def writeFile(self, frame_nb):
         deb.Param('Writing frame %s to file' % frame_nb)
-        
+        raise Exception, 'On-demand file writing not implemented yet'
+
     @DEB_MEMBER_FUNCT
     def setAutosave(self, autosave_act):
         deb.Param('Setting autosave active: %s' % autosave_act)
