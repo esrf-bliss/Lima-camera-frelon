@@ -28,6 +28,28 @@ using namespace lima::Frelon;
 using namespace std;
 
 /*******************************************************************
+ * \brief AcqEndCallback constructor
+ *******************************************************************/
+
+Frelon::AcqEndCallback::AcqEndCallback(Camera& cam) 
+  : m_cam(cam)
+{
+	DEB_CONSTRUCTOR();
+}
+
+Frelon::AcqEndCallback::~AcqEndCallback()
+{
+	DEB_DESTRUCTOR();
+}
+
+void Frelon::AcqEndCallback::acqFinished(const HwFrameInfoType& /*finfo*/)
+{
+	DEB_MEMBER_FUNCT();
+	m_cam.stop();
+}
+
+
+/*******************************************************************
  * \brief DetInfoCtrlObj constructor
  *******************************************************************/
 
@@ -53,13 +75,17 @@ void DetInfoCtrlObj::getMaxImageSize(Size& max_image_size)
 void DetInfoCtrlObj::getDetectorImageSize(Size& det_image_size)
 {
 	DEB_MEMBER_FUNCT();
-	det_image_size = MaxFrameDim.getSize();
+	FrameDim max_frame_dim;
+	m_cam.getMaxFrameDim(max_frame_dim);
+	det_image_size = max_frame_dim.getSize();
 }
 
 void DetInfoCtrlObj::getDefImageType(ImageType& def_image_type)
 {
 	DEB_MEMBER_FUNCT();
-	def_image_type = MaxFrameDim.getImageType();
+	FrameDim max_frame_dim;
+	m_cam.getMaxFrameDim(max_frame_dim);
+	def_image_type = max_frame_dim.getImageType();
 }
 
 void DetInfoCtrlObj::getCurrImageType(ImageType& curr_image_type)
@@ -218,7 +244,7 @@ void BufferCtrlObj::unregisterFrameCallback(HwFrameCallback& frame_cb)
  *******************************************************************/
 
 SyncCtrlObj::SyncCtrlObj(Acq& acq, Camera& cam, BufferCtrlObj& buffer_ctrl)
-	: HwSyncCtrlObj(buffer_ctrl), m_acq(acq), m_cam(cam), m_acq_end_cb(cam)
+	: HwSyncCtrlObj(buffer_ctrl), m_acq(acq), m_cam(cam)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -301,10 +327,7 @@ void SyncCtrlObj::setNbHwFrames(int nb_frames)
 	if (cam_nb_frames > MaxRegVal) {
 		DEB_TRACE() << "Too many frames: setting camera endless acq";
 		cam_nb_frames = 0;
-		if (!m_acq_end_cb.getAcq())
-			m_acq.registerAcqEndCallback(m_acq_end_cb);
-	} else if (m_acq_end_cb.getAcq())
-			m_acq.unregisterAcqEndCallback(m_acq_end_cb);
+	}
 
 	m_cam.setNbFrames(cam_nb_frames);
 }
@@ -333,28 +356,6 @@ void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 				 valid_ranges.max_exp_time);
 	DEB_RETURN() << DEB_VAR2(valid_ranges.min_lat_time, 
 				 valid_ranges.max_lat_time);
-}
-
-
-/*******************************************************************
- * \brief SyncCtrlObj::AcqEndCallback constructor
- *******************************************************************/
-
-SyncCtrlObj::AcqEndCallback::AcqEndCallback(Camera& cam) 
-	: m_cam(cam) 
-{
-	DEB_CONSTRUCTOR();
-}
-
-SyncCtrlObj::AcqEndCallback::~AcqEndCallback()
-{
-	DEB_DESTRUCTOR();
-}
-
-void SyncCtrlObj::AcqEndCallback::acqFinished(const HwFrameInfoType& /*finfo*/)
-{
-	DEB_MEMBER_FUNCT();
-	m_cam.stop();
 }
 
 
@@ -694,11 +695,13 @@ void ShutterCtrlObj::getCloseTime(double& shut_close_time) const
 
 Interface::Interface(Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
-	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam),
+	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam), m_acq_end_cb(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam, m_buffer), 
 	  m_bin(cam), m_roi(cam), m_flip(cam), m_shutter(cam)
 {
 	DEB_CONSTRUCTOR();
+
+	m_acq.registerAcqEndCallback(m_acq_end_cb);
 
 	HwDetInfoCtrlObj *det_info = &m_det_info;
 	m_cap_list.push_back(HwCap(det_info));
@@ -762,6 +765,7 @@ void Interface::reset(ResetLevel reset_level)
 	m_shutter.setMode(ShutterAutoFrame);
 	m_shutter.setCloseTime(0.0);
 
+	m_cam.setRoiBinOffset(Point(0));
 	m_bin.setBin(Bin(1));
 	m_roi.setRoi(Roi());
 	
@@ -784,9 +788,15 @@ void Interface::prepareAcq()
 void Interface::startAcq()
 {
 	DEB_MEMBER_FUNCT();
+
 	m_buffer_mgr.setStartTimestamp(Timestamp::now());
 	m_acq.start();
-	m_cam.start();
+	try {
+		m_cam.start();
+	} catch (...) {
+		m_acq.stop();
+		throw;
+	}
 }
 
 void Interface::stopAcq()
@@ -799,9 +809,8 @@ void Interface::stopAcq()
 void Interface::getStatus(StatusType& status)
 {
 	DEB_MEMBER_FUNCT();
-	Acq::Status acq;
-	m_acq.getStatus(acq);
-	status.acq = acq.running ? AcqRunning : AcqReady;
+
+	status.acq = m_cam.isRunning() ? AcqRunning : AcqReady;
 
 	static const DetStatus det_mask = 
 		(DetWaitForTrigger | DetExposure    | DetShutterClose   | 

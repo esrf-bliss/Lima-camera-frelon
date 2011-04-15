@@ -35,6 +35,27 @@ namespace Frelon
 class Interface;
 
 /*******************************************************************
+ * \class AcqEndCallback
+ * \brief Class executing camera commands at the end of acq.
+ *******************************************************************/
+
+class AcqEndCallback : public Espia::AcqEndCallback
+{
+	DEB_CLASS_NAMESPC(DebModCamera, "AcqEndCallback", "Frelon");
+
+ public:
+	AcqEndCallback(Camera& cam);
+	virtual ~AcqEndCallback();
+
+ protected:
+	virtual void acqFinished(const HwFrameInfoType& /*finfo*/);
+
+ private:
+	Camera& m_cam;
+};
+
+
+/*******************************************************************
  * \class DetInfoCtrlObj
  * \brief Control object providing Frelon detector info interface
  *******************************************************************/
@@ -135,22 +156,8 @@ class SyncCtrlObj : public HwSyncCtrlObj
 	virtual void getValidRanges(ValidRangesType& valid_ranges);
 
  private:
-	class AcqEndCallback : public Espia::AcqEndCallback
-	{
-		DEB_CLASS_NAMESPC(DebModCamera, "SyncCtrlObj::AcqEndCallback", 
-				  "Frelon");
-	public:
-		AcqEndCallback(Camera& cam);
-		virtual ~AcqEndCallback();
-	protected:
-		virtual void acqFinished(const HwFrameInfoType& /*finfo*/);
-	private:
-		Camera& m_cam;
-	};
-
 	Espia::Acq& m_acq;
 	Camera& m_cam;
-	AcqEndCallback m_acq_end_cb;
 };
 
 
@@ -322,6 +329,8 @@ class Interface : public HwInterface
 	Espia::Acq&    m_acq;
 	BufferCtrlMgr& m_buffer_mgr;
 	Camera&        m_cam;
+
+	Frelon::AcqEndCallback m_acq_end_cb;
 
 	CapList m_cap_list;
 	DetInfoCtrlObj m_det_info;

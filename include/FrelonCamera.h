@@ -63,6 +63,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 	static std::string getInputChanModeName(FrameTransferMode ftm, 
 						InputChan input_chan);
 
+	void getMaxFrameDim(FrameDim& max_frame_dim);
 	void getFrameDim(FrameDim& frame_dim);
 
 	bool isChanActive(InputChan curr, InputChan chan);
@@ -103,23 +104,37 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setNbFrames(int  nb_frames);
 	void getNbFrames(int& nb_frames);
 
-	void getStatus(Status& status);
-	bool waitStatus(Status& status, Status mask, double timeout);
+	void setSPB2Config(SPB2Config  spb2_config);
+	void getSPB2Config(SPB2Config& spb2_config);
+
+	void setExtSyncEnable(ExtSync  ext_sync_ena);
+	void getExtSyncEnable(ExtSync& ext_sync_ena);
+
+	void getStatus(Status& status, bool use_ser_line=false,
+		       bool read_spb2=false);
+	bool waitStatus(Status& status, Status mask, double timeout,
+			bool use_ser_line=false, bool read_spb2=false);
+
+	void getImageCount(unsigned int& img_count, bool only_lsw=false);
 
 	void start();
 	void stop();
+	bool isRunning();
 
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
 
  private:
+	static const double ResetLinkWaitTime;
 	static const double UpdateCcdStatusTime;
 	static const double MaxIdleWaitTime;
+	static const double MaxBusyRetryTime;
 
 	Espia::Dev& getEspiaDev();
 
 	void sync();
 	void syncRegs();
+	void syncRegsGoodHTD();
 
 	void sendCmd(Cmd cmd);
 
@@ -160,9 +175,10 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void processSetRoi(const Roi& req_roi, Roi& hw_roi, Roi& chan_roi, 
 			   Point& roi_offset);
 
-
 	void setTimeUnitFactor(TimeUnitFactor  time_unit_factor);
 	void getTimeUnitFactor(TimeUnitFactor& time_unit_factor);
+
+	AutoMutex lock();
 
 	SerialLine m_ser_line;
 	Model m_model;
@@ -171,6 +187,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	TrigMode m_trig_mode;
 	int m_nb_frames;
 	bool m_mis_cb_act;
+	Mutex m_lock;
+	bool m_started;
 };
 
 inline bool Camera::isChanActive(InputChan curr, InputChan chan)
@@ -178,6 +196,10 @@ inline bool Camera::isChanActive(InputChan curr, InputChan chan)
 	return (curr & chan) == chan;
 };
 
+inline AutoMutex Camera::lock()
+{
+	return AutoMutex(m_lock);
+}
 
 
 } // namespace Frelon

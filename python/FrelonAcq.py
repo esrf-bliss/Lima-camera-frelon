@@ -198,7 +198,7 @@ class FrelonAcq:
             raise Exception, 'Acquisition is running'
         
         chip_type = self.m_cam.getModel().getChipType()
-        is_e2v = (chip_type == Frelon.E2V)
+        is_e2v = (chip_type == Frelon.E2V_2k)
         corr_act = (is_e2v and self.m_e2v_corr_act)
         deb.Param('is_e2v=%s, self.m_e2v_corr_act=%s' % (is_e2v,
                                                          self.m_e2v_corr_act))
@@ -315,54 +315,45 @@ class FrelonAcq:
         return roi_mode
 
     @DEB_MEMBER_FUNCT
-    def setKinPars(self, kin_win_size, kin_line_beg, kin_stripes):
-        deb.Param('Setting kin pars: ' +
-                  'kin_win_size=%s, kin_line_beg=%s, kin_stripes=%s' % \
-                  (kin_win_size, kin_line_beg, kin_stripes))
-        if kin_stripes > 1:
-            deb.Warning('Ignoring kin_stripes=%d' % kin_stripes)
-            
-        bin = self.m_ct_image.getBin()
-        if kin_win_size % bin.getY() != 0:
-            msg = 'Invalid kinetics window size (%d): ' % kin_win_size + \
-                  'must be multiple of vert. bin (%d)' % bin.getY()
-            raise Exception, msg
+    def setRoiBinOffset(self, roi_bin_offset):
+        deb.Param('Setting Roi-Bin offset: %s' % roi_bin_offset)
+        self.m_cam.setRoiBinOffset(roi_bin_offset)
 
-        roi = self.m_ct_image.getRoi()
-        if roi.isEmpty():
-            roi = self.getMaxRoi()
+    @DEB_MEMBER_FUNCT
+    def getRoiBinOffset(self):
+        roi_bin_offset = self.m_cam.getRoiBinOffset()
+        deb.Return('Getting Roi-Bin offset: %s' % roi_bin_offset)
+        return roi_bin_offset
+
+    @DEB_MEMBER_FUNCT
+    def setRoiLineBegin(self, roi_line_beg):
+        deb.Param('Setting Roi line begin: %s' % roi_line_beg)
+        bin = self.m_ct_image.getBin()
+        roi = self.getRoi()
         roi = roi.getUnbinned(bin)
 
-        tl = Point(roi.getTopLeft().x, kin_line_beg)
+        tl = Point(roi.getTopLeft().x, roi_line_beg)
         tl_aligned = Point(tl)
         tl_aligned.alignTo(Point(bin), Floor)
-        size = Size(roi.getSize().getWidth(), kin_win_size)
-
-        roi = Roi(tl_aligned, size)
+        roi.setTopLeft(tl_aligned)
         roi = roi.getBinned(bin)
         self.m_ct_image.setRoi(roi)
         
         roi_bin_offset  = tl
         roi_bin_offset -= tl_aligned
 
-        self.m_cam.setRoiBinOffset(roi_bin_offset)
-        
+        self.setRoiBinOffset(roi_bin_offset)
+
     @DEB_MEMBER_FUNCT
-    def getKinPars(self):
+    def getRoiLineBegin(self):
         bin = self.m_ct_image.getBin()
-        roi = self.m_ct_image.getRoi()
-        if roi.isEmpty():
-            roi = self.getMaxRoi()
+        roi = self.getRoi()
         roi = roi.getUnbinned(bin)
-        kin_win_size = roi.getSize().getHeight()
         tl  = roi.getTopLeft()
-        tl += self.m_cam.getRoiBinOffset()
-        kin_line_beg = tl.y
-        kin_stripes = 1
-        deb.Return('Getting kin pars: ' +
-                   'kin_win_size=%s, kin_line_beg=%s, kin_stripes=%s' % \
-                   (kin_win_size, kin_line_beg, kin_stripes))
-        return kin_win_size, kin_line_beg, kin_stripes
+        tl += self.getRoiBinOffset()
+        roi_line_beg = tl.y
+        deb.Return('Getting Roi line begin: %s' % roi_line_beg)
+        return roi_line_beg
 
     @DEB_MEMBER_FUNCT
     def setFrameTransferMode(self, ftm):

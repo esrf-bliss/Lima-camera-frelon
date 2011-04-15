@@ -87,6 +87,13 @@ static const RegPair RegStrCList[] = {
 	RegPair(TransferTime,	"TTR"),
 	RegPair(CcdModesAvail,	"CMA"),
 
+	RegPair(StatusSeqA,	"SSA"),
+	RegPair(StatusAMTA,	"SAA"),
+	RegPair(StatusAMTB,	"SAB"),
+	RegPair(StatusAMTC,	"SAC"),
+	RegPair(StatusAMTD,	"SAD"),
+
+	RegPair(LookUpTable,	"LUT"),
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -103,8 +110,9 @@ lima::Frelon::CacheableRegList(C_LIST_ITERS(CacheableRegCList));
 
 typedef pair<Reg, double> RegSleepPair;
 static const RegSleepPair RegSleepCList[] = {
-	RegSleepPair(ConfigHD, 2.0),
-	RegSleepPair(BinHorz,  2.0),
+	RegSleepPair(ConfigHD,    2.0),
+	RegSleepPair(BinHorz,     2.0),
+	RegSleepPair(LookUpTable, 2.0),
 };
 RegDoubleMapType lima::Frelon::RegSleepMap(C_LIST_ITERS(RegSleepCList));
 
@@ -129,6 +137,7 @@ static const MLCmdPair MLCmdStrCList[] = {
 	MLCmdPair(Aoi,		"AOI"),
 	MLCmdPair(PLL,		"PLL"),
 	MLCmdPair(Timing,	"TIM"),
+	MLCmdPair(StatusCam,	"STC"),
 };
 MultiLineCmdStrMapType 
 lima::Frelon::MultiLineCmdStrMap(C_LIST_ITERS(MLCmdStrCList));
@@ -170,15 +179,28 @@ static const FactorPair TimeUnitFactorCList[] = {
 TimeUnitFactorMapType 
 lima::Frelon::TimeUnitFactorMap(C_LIST_ITERS(TimeUnitFactorCList));
 
-
-const FrameDim lima::Frelon::MaxFrameDim(2048, 2048, Bpp16);
-
+typedef pair<ChipType, FrameDim> ChipFrameDimPair;
+static const ChipFrameDimPair ChipMaxFrameDimCList[] = {
+	ChipFrameDimPair(Atmel,        FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(Kodak,        FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_2k,       FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_2kNotMPP, FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_4k,       FrameDim(4096, 4096, Bpp16)),
+	ChipFrameDimPair(E2V_4kNotMPP, FrameDim(4096, 4096, Bpp16)),
+	ChipFrameDimPair(Hama,         FrameDim(2048,    1, Bpp16)),
+};
+ChipMaxFrameDimMapType 
+lima::Frelon::ChipMaxFrameDimMap(C_LIST_ITERS(ChipMaxFrameDimCList));
 
 typedef pair<ChipType, double> ChipSizePair;
 static const ChipSizePair ChipPixelSizeCList[] = {
-	ChipSizePair(Atmel, 14e-6),
-	ChipSizePair(Kodak, 24e-6),
-	ChipSizePair(E2V,   15e-6),
+	ChipSizePair(Atmel,        14e-6),
+	ChipSizePair(Kodak,        24e-6),
+	ChipSizePair(E2V_2k,       15e-6),
+	ChipSizePair(E2V_2kNotMPP, 15e-6),
+	ChipSizePair(E2V_4k,       15e-6),
+	ChipSizePair(E2V_4kNotMPP, 15e-6),
+	ChipSizePair(Hama,         14e-6),
 };
 ChipPixelSizeMapType 
 lima::Frelon::ChipPixelSizeMap(C_LIST_ITERS(ChipPixelSizeCList));

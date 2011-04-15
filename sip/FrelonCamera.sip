@@ -58,6 +58,7 @@ class Camera
 	static std::string getInputChanModeName(Frelon::FrameTransferMode ftm, 
 						Frelon::InputChan input_chan);
 
+	void getMaxFrameDim(FrameDim& max_frame_dim /Out/);
 	void getFrameDim(FrameDim& frame_dim /Out/);
 
 	bool isChanActive(Frelon::InputChan curr, Frelon::InputChan chan);
@@ -98,12 +99,23 @@ class Camera
 	void setNbFrames(int  nb_frames);
 	void getNbFrames(int& nb_frames /Out/);
 
-	void getStatus(Frelon::Status& status /Out/);
+	void setSPB2Config(Frelon::SPB2Config  spb2_config);
+	void getSPB2Config(Frelon::SPB2Config& spb2_config /Out/);
+
+	void setExtSyncEnable(Frelon::ExtSync  ext_sync_ena);
+	void getExtSyncEnable(Frelon::ExtSync& ext_sync_ena /Out/);
+
+	void getStatus(Frelon::Status& status /Out/, bool use_ser_line=false,
+		       bool read_spb2=false);
 	bool waitStatus(Frelon::Status& status /In,Out/, Frelon::Status mask, 
-			double timeout);
+			double timeout, bool user_ser_line=false,
+			bool read_spb2=false);
+
+	void getImageCount(unsigned int& img_count /Out/, bool only_lsw=false);
 
 	void start();
 	void stop();
+	bool isRunning();
 
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);

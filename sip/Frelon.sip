@@ -42,7 +42,8 @@ enum Reg {
 	Version,	CompSerNb,	Warn,		LastWarn,
 	LineClockPer,	PixelClockPer,	FirstPHIVLen,	PHIHSetupLen,
 	SingleVertXfer,	SingleHorzXfer,	AllVertXfer,	AllHorzXfer,
-	ReadoutTime,	TransferTime,   CcdModesAvail,
+	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
+	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
 };
 /*
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -64,7 +65,7 @@ extern CmdStrMapType CmdStrMap;
 
 enum MultiLineCmd {
 	Help,		Config,		Dac,		Volt,
-	Aoi,		PLL,		Timing,
+	Aoi,		PLL,		Timing,		StatusCam,
 };
 /*
 typedef std::map<MultiLineCmd, std::string> MultiLineCmdStrMapType;
@@ -117,37 +118,81 @@ typedef std::map<TimeUnitFactor, double> TimeUnitFactorMapType;
 extern TimeUnitFactorMapType TimeUnitFactorMap;
 
 
-extern const FrameDim MaxFrameDim;
 */
 enum ChipType {
 	Atmel,
 	Kodak,
-	E2V,
+	E2V_2k,
+	E2V_2kNotMPP,
+	E2V_4k,
+	E2V_4kNotMPP,
+	Hama,
 };
 /*
+typedef std::map<ChipType, FrameDim> ChipMaxFrameDimMapType;
+extern ChipMaxFrameDimMapType ChipMaxFrameDimMap;
+
 typedef std::map<ChipType, double> ChipPixelSizeMapType;
 extern ChipPixelSizeMapType ChipPixelSizeMap;
 */
+enum {
+	AtmelModesAvail = 0x0fff,
+	KodakModesAvail = 0x0100,
+};
+
 enum {
 	MaxBinX = 8,
 	MaxBinY = 1024,
 };
 
+enum ExtSync {
+	ExtSyncNone  = 0,
+	ExtSyncStart = 1,
+	ExtSyncStop  = 2,
+	ExtSyncBoth  = 3,
+};
+
 enum Status {
-        Wait       = 0x80,
-        Transfer   = 0x40,
-        Exposure   = 0x20,
-        Shutter    = 0x10,
-        Readout    = 0x08,
-        Latency    = 0x04,
-        ExtStart   = 0x02,
-        ExtStop    = 0x01,
-	StatusMask = 0xff,
+	InInit     = 0x200,
+	EspiaXfer  = 0x100,
+        Wait       = 0x080,
+        Transfer   = 0x040,
+        Exposure   = 0x020,
+        Shutter    = 0x010,
+        Readout    = 0x008,
+        Latency    = 0x004,
+        ExtStart   = 0x002,
+        ExtStop    = 0x001,
+	StatusMask = 0x3ff,
+};
+
+enum StatusSPB2 {
+	SPB2_GBitFifoPixEmpty = 0x8000,
+	SPB2_FifoOutEmpty     = 0x4000,
+	SPB2_FifoInEmpty      = 0x2000,
+	SPB2_FifoLUTEmpty     = 0x1000,
+	SPB2_FifoChan4Empty   = 0x0800,
+	SPB2_FifoChan3Empty   = 0x0400,
+	SPB2_FifoChan2Empty   = 0x0200,
+	SPB2_FifoChan1Empty   = 0x0100,
+	SPB2_TstEnvFrmOut     = 0x0040,
+	SPB2_TstEnvFrmIn      = 0x0020,
+	SPB2_TstEnvMask       = 0x0060,
+	SPB2_TstFlashUsrReady = 0x0010,
+	SPB2_EndInitRam       = 0x0008,
+	SPB2_EndFlashRead     = 0x0004,
+	SPB2_AuroraChanUp     = 0x0002,
+	SPB2_DcmLocked        = 0x0001,
+	SPB2_TstInitMask      = 0x001f,
+	SPB2_TstInitGood      = 0x001f,
 };
 
 enum ShutMode {
 	Off, AutoFrame,
 };
 
+enum SPB2Config {
+	SPB2Precision, SPB2Speed,
+};
 
 }; // namespace Frelon

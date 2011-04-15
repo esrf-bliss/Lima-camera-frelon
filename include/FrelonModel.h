@@ -123,6 +123,7 @@ class Model
 	bool hasTaper();
 	bool hasModesAvail();
 	bool hasTimeCalc();
+	bool hasGoodHTD();
 
 	double getPixelSize();
 

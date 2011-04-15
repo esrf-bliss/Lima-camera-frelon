@@ -292,6 +292,15 @@ bool Model::hasTimeCalc()
 	return time_calc;
 }
 
+bool Model::hasGoodHTD()
+{
+	DEB_MEMBER_FUNCT();
+
+	bool good_htd = (isSPB2() && (m_firmware >= Firmware("3.0i")));
+	DEB_RETURN() << DEB_VAR1(good_htd);
+	return good_htd;
+}
+
 double Model::getPixelSize()
 {
 	DEB_MEMBER_FUNCT();
@@ -307,13 +316,19 @@ string Model::getName()
 	DEB_MEMBER_FUNCT();
 	checkValid();
 
-	map<ChipType, string> chip_model;
-	chip_model[Atmel] = "A7899";
-	chip_model[Kodak] = "K4320";
-	chip_model[E2V]   = "E230-42";
+	string chip_model;
+	switch (getChipType()) {
+	case Atmel:        chip_model = "A7899";   break;
+	case Kodak:        chip_model = "K4320";   break;
+	case E2V_2k:       chip_model = "E230-42"; break;
+	case E2V_2kNotMPP: chip_model = "E231-42"; break;
+	case E2V_4k:       chip_model = "E230-84"; break;
+	case E2V_4kNotMPP: chip_model = "E231-84"; break;
+	default:           chip_model = "Unknown";
+	}
 
 	string hd = isSPB2() ? "HD " : "";
-	string name = hd + chip_model[getChipType()];
+	string name = hd + chip_model;
 
 	if (isSPB1() && (getAdcBits() == 16))
 		name += " 16bit";

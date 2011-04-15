@@ -27,13 +27,15 @@ using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
 
+const double Camera::ResetLinkWaitTime = 5;
 const double Camera::UpdateCcdStatusTime = 0.1;
-const double Camera::MaxIdleWaitTime = 1.5;
+const double Camera::MaxIdleWaitTime = 2.5;
+const double Camera::MaxBusyRetryTime = 0.2;	// 16 Mpixel image Aurora Xfer
 
 
 Camera::Camera(Espia::SerialLine& espia_ser_line)
 	: m_ser_line(espia_ser_line), m_timing_ctrl(m_model, m_ser_line),
-	  m_mis_cb_act(false)
+	  m_mis_cb_act(false), m_started(false)
 {
 	DEB_CONSTRUCTOR();
 
@@ -43,21 +45,28 @@ Camera::Camera(Espia::SerialLine& espia_ser_line)
 Camera::~Camera()
 {
 	DEB_DESTRUCTOR();
-
 }
 
 void Camera::sync()
 {
 	DEB_MEMBER_FUNCT();
 
-	DEB_TRACE() << "Forcing a link reset";
 	Espia::Dev& dev = getEspiaDev();
-	dev.resetLink();
+	int chan_up_led;
+	dev.getChanUpLed(chan_up_led);
+	if (!chan_up_led) {
+		DEB_WARNING() << "Aurora link down. Forcing a link reset!";
+		dev.resetLink();
+		DEB_TRACE() << "Sleeping additional "
+			    << DEB_VAR1(Frelon::Camera::ResetLinkWaitTime);
+		Sleep(ResetLinkWaitTime);
+	}
 
 	DEB_TRACE() << "Synchronizing with the camera";
 
 	m_model.reset();
 	m_roi_offset = 0;
+	m_started = false;
 
 	try {
 		syncRegs();
@@ -93,6 +102,9 @@ void Camera::syncRegs()
 	getComplexSerialNb(complex_ser_nb);
 	m_model.setComplexSerialNb(complex_ser_nb);
 
+	if (m_model.hasGoodHTD())
+		syncRegsGoodHTD();
+
 	double exp_time;
 	getExpTime(exp_time);
 	m_trig_mode = (exp_time == 0) ? ExtGate : IntTrig;
@@ -103,6 +115,40 @@ void Camera::syncRegs()
 	DEB_TRACE() << "Sleeping " << UpdateCcdStatusTime << " s to allow "
 		    << "CCD status byte get updated";
 	Sleep(UpdateCcdStatusTime);
+}
+
+void Camera::syncRegsGoodHTD()
+{
+	DEB_MEMBER_FUNCT();
+
+	Status status;
+	bool use_ser_line, read_spb2;
+	use_ser_line = read_spb2 = true;
+	getStatus(status, use_ser_line, read_spb2);
+	if (status != Wait)
+		DEB_WARNING() << "Camera not IDLE: " 
+			      << DEB_VAR1(DEB_HEX(status));
+	int retry = 0;
+	do {
+		setExtSyncEnable(ExtSyncNone);
+		sendCmd(Stop);
+		status = Wait;
+		waitStatus(status, StatusMask, MaxIdleWaitTime, 
+			   use_ser_line, read_spb2);
+		if (status == Wait) {
+			if (retry > 0)
+				DEB_TRACE() << "Succeeded after " << retry 
+					    << " retries";
+			break;
+		} else if (retry == 0) {
+			DEB_WARNING() << "Tyring a hard reset ...";
+			sendCmd(Reset);
+		}
+	} while (++retry < 2);
+					  
+	if (status != Wait)
+		THROW_HW_ERROR(Error) << "Wrong camera BUSY status: "
+				      << DEB_VAR1(DEB_HEX(status));
 }
 
 SerialLine& Camera::getSerialLine()
@@ -133,7 +179,31 @@ void Camera::sendCmd(Cmd cmd)
 void Camera::writeRegister(Reg reg, int val)
 {
 	DEB_MEMBER_FUNCT();
-	m_ser_line.writeRegister(reg, val);
+
+	static const string busy_msg = "Frelon Error: BSY";
+
+	Timestamp t0 = Timestamp::now();
+	int retry = 0;
+	do {
+		try {
+			m_ser_line.writeRegister(reg, val);
+			if (retry > 0)
+				DEB_WARNING() << "Succeeded after " << retry 
+					      << " retries";
+			return;
+		} catch (Exception e) {
+			string err_msg = e.getErrMsg();
+			DEB_TRACE() << "Error in write: " << DEB_VAR1(err_msg);
+			bool busy = (err_msg.find(busy_msg) != string::npos);
+			if (!busy)
+				throw;
+			DEB_TRACE() << "Retrying ...";
+			retry++;
+		}
+	} while (Timestamp::now() - t0 < MaxBusyRetryTime);
+
+	THROW_HW_ERROR(Error) << "Frelon Camera still busy after "
+			      << MaxBusyRetryTime << " sec";
 }
 
 void Camera::readRegister(Reg reg, int& val)
@@ -402,11 +472,21 @@ void Camera::getFrameTransferMode(FrameTransferMode& ftm)
 	THROW_HW_ERROR(Error) << "Invalid " << DEB_VAR1(chan_mode);
 }
 
+void Camera::getMaxFrameDim(FrameDim& max_frame_dim)
+{
+	DEB_MEMBER_FUNCT();
+
+	ChipType chip_type = m_model.getChipType();
+	max_frame_dim = ChipMaxFrameDimMap[chip_type];
+
+	DEB_RETURN() << DEB_VAR1(max_frame_dim);
+}
+
 void Camera::getFrameDim(FrameDim& frame_dim)
 {
 	DEB_MEMBER_FUNCT();
 
-	frame_dim = MaxFrameDim;
+	getMaxFrameDim(frame_dim);
 	FrameTransferMode ftm;
 	getFrameTransferMode(ftm);
 	if (ftm == FTM)
@@ -508,7 +588,7 @@ void Camera::setRoiMode(RoiMode roi_mode)
 	DEB_PARAM() << DEB_VAR1(roi_mode);
 
 	bool roi_hw   = (roi_mode == Slow) || (roi_mode == Fast);
-	bool roi_fast = (roi_mode == Fast) || (roi_mode == Kinetic);
+	bool roi_fast = (roi_mode == Fast);
 	bool roi_kin  = (roi_mode == Kinetic);
 	DEB_TRACE() << DEB_VAR3(roi_hw, roi_fast, roi_kin);
 
@@ -527,7 +607,7 @@ void Camera::getRoiMode(RoiMode& roi_mode)
 	readRegister(RoiKinetic, roi_kin);
 	DEB_TRACE() << DEB_VAR3(roi_hw, roi_fast, roi_kin);
 
-	if (roi_fast && roi_kin)
+	if (roi_kin)
 		roi_mode = Kinetic;
 	else if (roi_fast && roi_hw)
 		roi_mode = Fast;
@@ -1100,20 +1180,78 @@ void Camera::getNbFrames(int& nb_frames)
 	DEB_RETURN() << DEB_VAR1(nb_frames);
 }
 
-void Camera::getStatus(Status& status)
+void Camera::setSPB2Config(SPB2Config spb2_config)
 {
 	DEB_MEMBER_FUNCT();
-	Espia::Dev& dev = getEspiaDev();
+	DEB_PARAM() << DEB_VAR1(spb2_config);
+	writeRegister(ConfigHD, int(spb2_config));
+}
+
+void Camera::getSPB2Config(SPB2Config& spb2_config)
+{
+	DEB_MEMBER_FUNCT();
+	int config_hd;
+	readRegister(ConfigHD, config_hd);
+	spb2_config = SPB2Config(config_hd);
+	DEB_RETURN() << DEB_VAR1(spb2_config);
+}
+
+void Camera::setExtSyncEnable(ExtSync ext_sync_ena)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(ext_sync_ena);
+	int hard_trig_dis = int(~ext_sync_ena) & ExtSyncBoth;
+	writeRegister(HardTrigDisable, hard_trig_dis);
+}
+
+void Camera::getExtSyncEnable(ExtSync& ext_sync_ena)
+{
+	DEB_MEMBER_FUNCT();
+	int hard_trig_dis;
+	readRegister(HardTrigDisable, hard_trig_dis);
+	ext_sync_ena = ExtSync(~hard_trig_dis & ExtSyncBoth);
+	DEB_RETURN() << DEB_VAR1(ext_sync_ena);
+}
+
+void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb2)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR2(use_ser_line, read_spb2);
+
+	bool has_good_htd = m_model.hasGoodHTD();
+	if ((use_ser_line || read_spb2) && !has_good_htd)
+		THROW_HW_ERROR(NotSupported) << "SPB2/ser. line status "
+			"not supported: must upgrade to good HTD firmware";
+
+	int spb2_status = 0;
+	if (read_spb2)
+		readRegister(StatusAMTA, spb2_status);
+
 	int ccd_status;
-	dev.getCcdStatus(ccd_status);
+	if (use_ser_line) {
+		readRegister(StatusSeqA, ccd_status);
+	} else {
+		Espia::Dev& dev = getEspiaDev();
+		dev.getCcdStatus(ccd_status);
+	}
+
+	if (read_spb2) {
+		if ((spb2_status & SPB2_TstEnvMask) != 0)
+			ccd_status |= EspiaXfer;
+		if ((spb2_status & SPB2_TstInitMask) != SPB2_TstInitGood)
+			ccd_status |= InInit;
+	}
+
 	status = Status(ccd_status);
 	DEB_RETURN() << DEB_VAR1(DEB_HEX(status));
 }
 
-bool Camera::waitStatus(Status& status, Status mask, double timeout)
+bool Camera::waitStatus(Status& status, Status mask, double timeout,
+			bool use_ser_line, bool read_spb2)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR3(DEB_HEX(status), DEB_HEX(mask), timeout);
+	DEB_PARAM() << DEB_VAR5(DEB_HEX(status), DEB_HEX(mask), timeout,
+				use_ser_line, read_spb2);
 
 	Timestamp end;
 	if (timeout > 0)
@@ -1129,7 +1267,7 @@ bool Camera::waitStatus(Status& status, Status mask, double timeout)
 			break;
 		}
 
-		getStatus(curr_status);
+		getStatus(curr_status, use_ser_line, read_spb2);
 		good_status = ((curr_status & mask) == status);
 	}
 
@@ -1138,41 +1276,95 @@ bool Camera::waitStatus(Status& status, Status mask, double timeout)
 	return good_status;
 }
 
+void Camera::getImageCount(unsigned int& img_count, bool only_lsw)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(only_lsw);
+
+	int reg_count;
+	readRegister(StatusAMTC, reg_count);
+	img_count = reg_count;
+	if (!only_lsw) {
+		readRegister(StatusAMTD, reg_count);
+		img_count |= reg_count << 16;
+	}
+
+	DEB_RETURN() << DEB_VAR1(img_count);
+}
+
 void Camera::start()
 {
 	DEB_MEMBER_FUNCT();
+
+	AutoMutex l = lock();
 
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
 	if (trig_mode == IntTrig) {
 		DEB_TRACE() << "Starting camera by software";
 		sendCmd(Start);
+	} else if (m_model.hasGoodHTD()) {
+		DEB_TRACE() << "Enabling Ext. Sync. signals";
+		setExtSyncEnable(ExtSyncBoth);
 	}
+
+	m_started = true;
 }
 
 void Camera::stop()
 {
 	DEB_MEMBER_FUNCT();
 
-	Status status;
-	getStatus(status);
-	if (status == Wait)
+	AutoMutex l = lock();
+
+	if (!m_started)
 		return;
 
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
-	if (trig_mode != ExtGate) {
+
+	bool has_good_htd = m_model.hasGoodHTD();
+	if (has_good_htd && (trig_mode != IntTrig)) {
+		DEB_TRACE() << "Disabling Ext. Sync. signals";
+		setExtSyncEnable(ExtSyncNone);
+	}
+
+	Status status;
+	getStatus(status);
+	if (status == Wait) {
+		m_started = false;
+		return;
+	}
+
+	bool send_stop;
+	if (has_good_htd) {
+		send_stop = true;
+	} else if (trig_mode == ExtGate) {
+		send_stop = false;
+	} else {
 		int cam_nb_frames;
 		readRegister(NbFrames, cam_nb_frames);
-		if (cam_nb_frames > 1) {
-			DEB_TRACE() << "Aborting current acquisition";
-			sendCmd(Stop);
-		}
+		send_stop = (cam_nb_frames != 1);
+	}
+
+	if (send_stop) {
+		DEB_TRACE() << "Aborting current acquisition";
+		sendCmd(Stop);
 	}
 
 	DEB_TRACE() << "Waiting for camera to become idle";
 	status = Wait;
 	waitStatus(status, StatusMask, MaxIdleWaitTime);
+
+	m_started = false;
+}
+
+bool Camera::isRunning()
+{
+	DEB_MEMBER_FUNCT();
+	AutoMutex l = lock();
+	DEB_RETURN() << DEB_VAR1(m_started);
+	return m_started;
 }
 
 void Camera::setMaxImageSizeCallbackActive(bool cb_active)

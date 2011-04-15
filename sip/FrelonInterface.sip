@@ -27,6 +27,23 @@ namespace Frelon
 //class Interface;
 
 
+class AcqEndCallback : Espia::AcqEndCallback
+{
+
+%TypeHeaderCode
+#include "FrelonInterface.h"
+#include <algorithm>
+%End
+
+ public:
+	AcqEndCallback(Frelon::Camera& cam);
+	virtual ~AcqEndCallback();
+
+ protected:
+	virtual void acqFinished(const HwFrameInfoType& /*finfo*/);
+};
+
+
 class DetInfoCtrlObj : HwDetInfoCtrlObj
 {
 
