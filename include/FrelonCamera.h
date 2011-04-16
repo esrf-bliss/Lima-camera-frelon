@@ -107,6 +107,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setSPB2Config(SPB2Config  spb2_config);
 	void getSPB2Config(SPB2Config& spb2_config);
 
+	static std::string getSPB2ConfigName(SPB2Config spb2_config);
+
 	void setExtSyncEnable(ExtSync  ext_sync_ena);
 	void getExtSyncEnable(ExtSync& ext_sync_ena);
 
@@ -169,12 +171,13 @@ class Camera : public HwMaxImageSizeCallbackGen
 			  Roi& final_roi);
 	void calcChanRoi(const Roi& image_roi, Roi& chan_roi,
 			 Flip& roi_inside_mirror);
-	void calcImageRoiOffset(const Roi& req_roi, const Roi& image_roi,
-				Point& roi_offset);
+	void calcChanRoiOffset(const Roi& req_roi, const Roi& image_roi,
+			       Point& roi_offset);
         void checkRoiMode(const Roi& roi);
 	void processSetRoi(const Roi& req_roi, Roi& hw_roi, Roi& chan_roi, 
 			   Point& roi_offset);
-
+	void resetRoiBinOffset();
+	
 	void setTimeUnitFactor(TimeUnitFactor  time_unit_factor);
 	void getTimeUnitFactor(TimeUnitFactor& time_unit_factor);
 
@@ -183,7 +186,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	SerialLine m_ser_line;
 	Model m_model;
 	TimingCtrl m_timing_ctrl;
-	Point m_roi_offset;
+	Point m_chan_roi_offset;
+	Point m_roi_bin_offset;
 	TrigMode m_trig_mode;
 	int m_nb_frames;
 	bool m_mis_cb_act;

@@ -204,3 +204,11 @@ static const ChipSizePair ChipPixelSizeCList[] = {
 };
 ChipPixelSizeMapType 
 lima::Frelon::ChipPixelSizeMap(C_LIST_ITERS(ChipPixelSizeCList));
+
+typedef pair<SPB2Config, string> SPB2ConfigStrPair;
+static const SPB2ConfigStrPair SPB2ConfigNameCList[] = {
+	SPB2ConfigStrPair(SPB2Precision, "Precision"),
+	SPB2ConfigStrPair(SPB2Speed    , "Speed"),
+};
+SPB2ConfigStrMapType
+lima::Frelon::SPB2ConfigNameMap(C_LIST_ITERS(SPB2ConfigNameCList));

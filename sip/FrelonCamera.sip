@@ -102,6 +102,8 @@ class Camera
 	void setSPB2Config(Frelon::SPB2Config  spb2_config);
 	void getSPB2Config(Frelon::SPB2Config& spb2_config /Out/);
 
+	static std::string getSPB2ConfigName(Frelon::SPB2Config spb2_config);
+
 	void setExtSyncEnable(Frelon::ExtSync  ext_sync_ena);
 	void getExtSyncEnable(Frelon::ExtSync& ext_sync_ena /Out/);
 

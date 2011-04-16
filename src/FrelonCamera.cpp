@@ -35,7 +35,7 @@ const double Camera::MaxBusyRetryTime = 0.2;	// 16 Mpixel image Aurora Xfer
 
 Camera::Camera(Espia::SerialLine& espia_ser_line)
 	: m_ser_line(espia_ser_line), m_timing_ctrl(m_model, m_ser_line),
-	  m_mis_cb_act(false), m_started(false)
+	  m_mis_cb_act(false)
 {
 	DEB_CONSTRUCTOR();
 
@@ -65,7 +65,7 @@ void Camera::sync()
 	DEB_TRACE() << "Synchronizing with the camera";
 
 	m_model.reset();
-	m_roi_offset = 0;
+	m_chan_roi_offset = 0;
 	m_started = false;
 
 	try {
@@ -115,6 +115,8 @@ void Camera::syncRegs()
 	DEB_TRACE() << "Sleeping " << UpdateCcdStatusTime << " s to allow "
 		    << "CCD status byte get updated";
 	Sleep(UpdateCcdStatusTime);
+
+	getRoiBinOffset(m_roi_bin_offset);
 }
 
 void Camera::syncRegsGoodHTD()
@@ -554,9 +556,10 @@ void Camera::setBin(const Bin& bin)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
 	
-	if ((bin.getX() > 8) || (bin.getY() > 1024))
+	if ((bin.getX() > MaxBinX) || (bin.getY() > MaxBinY))
 		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(bin)
-					     << ". Must be <= 8x1024";
+					     << ". Max. HW binning is " 
+					     << Bin(MaxBinX, MaxBinY);
 
 	Bin curr_bin;
 	getBin(curr_bin);
@@ -570,6 +573,8 @@ void Camera::setBin(const Bin& bin)
 
 	writeRegister(BinHorz, bin.getX());
 	writeRegister(BinVert, bin.getY());
+
+	resetRoiBinOffset();
 }
 
 void Camera::getBin(Bin& bin)
@@ -595,6 +600,9 @@ void Camera::setRoiMode(RoiMode roi_mode)
 	writeRegister(RoiEnable,  roi_hw);
 	writeRegister(RoiFast,    roi_fast);
 	writeRegister(RoiKinetic, roi_kin);
+
+	if (roi_mode == None)
+		resetRoiBinOffset();
 }
 
 void Camera::getRoiMode(RoiMode& roi_mode)
@@ -662,7 +670,8 @@ Size Camera::getChanSize()
 Flip Camera::getRoiInsideMirror()
 {
 	DEB_MEMBER_FUNCT();
-	Flip roi_inside_mirror(m_roi_offset.x > 0, m_roi_offset.y > 0);
+	Flip roi_inside_mirror(m_chan_roi_offset.x > 0, 
+			       m_chan_roi_offset.y > 0);
 	DEB_RETURN() << DEB_VAR1(roi_inside_mirror);
 	return roi_inside_mirror;
 }
@@ -705,7 +714,7 @@ void Camera::calcImageRoi(const Roi& chan_roi, const Flip& roi_inside_mirror,
 			  Roi& image_roi, Point& roi_bin_offset)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(chan_roi);
+	DEB_PARAM() << DEB_VAR2(chan_roi, roi_inside_mirror);
 
 	Point image_tl, chan_tl = chan_roi.getTopLeft();
 	Point image_br, chan_br = chan_roi.getBottomRight();
@@ -723,7 +732,7 @@ void Camera::calcImageRoi(const Roi& chan_roi, const Flip& roi_inside_mirror,
 
 	image_tl = unbinned_roi.getTopLeft() + mirr_shift;
 	unbinned_roi.setTopLeft(image_tl);
-	DEB_TRACE() << "Before mirror shift " << DEB_VAR1(unbinned_roi);
+	DEB_TRACE() << "After mirror shift " << DEB_VAR1(unbinned_roi);
 
 	image_roi = unbinned_roi.getBinned(bin);
 
@@ -736,13 +745,13 @@ void Camera::calcImageRoi(const Roi& chan_roi, const Flip& roi_inside_mirror,
 	DEB_RETURN() << DEB_VAR2(image_roi, roi_bin_offset);
 }
 
-void Camera::calcFinalRoi(const Roi& image_roi, const Point& roi_offset,
+void Camera::calcFinalRoi(const Roi& image_roi, const Point& chan_roi_offset,
 			  Roi& final_roi)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR2(image_roi, roi_offset);
+	DEB_PARAM() << DEB_VAR2(image_roi, chan_roi_offset);
 
-	Point tl = image_roi.getTopLeft() + roi_offset;
+	Point tl = image_roi.getTopLeft() + chan_roi_offset;
 	Point nb_chan = getNbChan();
 	Size size = image_roi.getSize() * nb_chan;
 	final_roi = Roi(tl, size);
@@ -761,8 +770,13 @@ void Camera::calcChanRoi(const Roi& image_roi, Roi& chan_roi,
 	Roi unbinned_roi = image_roi.getUnbinned(bin);
 	DEB_TRACE() << DEB_VAR1(unbinned_roi);
 
-	Point chan_tl, image_tl = unbinned_roi.getTopLeft();
-	Point chan_br, image_br = unbinned_roi.getBottomRight();
+	Point image_tl = unbinned_roi.getTopLeft();
+	image_tl += m_roi_bin_offset;
+	unbinned_roi.setTopLeft(image_tl);
+	DEB_TRACE() << "shifted: " << DEB_VAR2(m_roi_bin_offset, unbinned_roi);
+
+	Point image_br = unbinned_roi.getBottomRight();
+	Point chan_tl, chan_br;
 	Corner c_tl, c_br;
 	xformChanCoords(image_tl, chan_tl, c_tl);
 	xformChanCoords(image_br, chan_br, c_br);
@@ -785,14 +799,15 @@ void Camera::calcChanRoi(const Roi& image_roi, Roi& chan_roi,
 
 	chan_roi.setCorners(chan_tl, chan_br);
 
-	roi_inside_mirror.x = (image_tl.x > chan_br.x);
-	roi_inside_mirror.y = (image_tl.y > chan_br.y);
+	Flip mirror = getMirror();
+	roi_inside_mirror.x = mirror.x && (image_tl.x > chan_br.x);
+	roi_inside_mirror.y = mirror.y && (image_tl.y > chan_br.y);
 
 	DEB_RETURN() << DEB_VAR2(chan_roi, roi_inside_mirror);
 }
 
-void Camera::calcImageRoiOffset(const Roi& req_roi, const Roi& image_roi,
-				Point& roi_offset)
+void Camera::calcChanRoiOffset(const Roi& req_roi, const Roi& image_roi,
+			       Point& chan_roi_offset)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR2(req_roi, image_roi);
@@ -814,8 +829,8 @@ void Camera::calcImageRoiOffset(const Roi& req_roi, const Roi& image_roi,
 	if (req_tl.y > image_br.y)
 		virt_tl.y = mirror_tl.y;
 
-	roi_offset = virt_tl - image_roi.getTopLeft();
-	DEB_RETURN() << DEB_VAR1(roi_offset);
+	chan_roi_offset = virt_tl - image_roi.getTopLeft();
+	DEB_RETURN() << DEB_VAR1(chan_roi_offset);
 }
 
 void Camera::checkRoiMode(const Roi& roi)
@@ -839,8 +854,8 @@ void Camera::checkRoi(const Roi& set_roi, Roi& hw_roi)
 
 	if (set_roi.isActive()) {
 		Roi chan_roi;
-		Point roi_offset;
-		processSetRoi(set_roi, hw_roi, chan_roi, roi_offset);
+		Point chan_roi_offset;
+		processSetRoi(set_roi, hw_roi, chan_roi, chan_roi_offset);
 	} else 
 		hw_roi = set_roi;
 
@@ -848,7 +863,7 @@ void Camera::checkRoi(const Roi& set_roi, Roi& hw_roi)
 }
 
 void Camera::processSetRoi(const Roi& set_roi, Roi& hw_roi, 
-			   Roi& chan_roi, Point& roi_offset)
+			   Roi& chan_roi, Point& chan_roi_offset)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(set_roi);
@@ -860,10 +875,10 @@ void Camera::processSetRoi(const Roi& set_roi, Roi& hw_roi,
 	Roi image_roi;
 	Point roi_bin_offset;
 	calcImageRoi(chan_roi, roi_inside_mirror, image_roi, roi_bin_offset);
-	calcImageRoiOffset(set_roi, image_roi, roi_offset);
-	calcFinalRoi(image_roi, roi_offset, hw_roi);
+	calcChanRoiOffset(set_roi, image_roi, chan_roi_offset);
+	calcFinalRoi(image_roi, chan_roi_offset, hw_roi);
 
-	DEB_RETURN() << DEB_VAR3(hw_roi, chan_roi, roi_offset);
+	DEB_RETURN() << DEB_VAR3(hw_roi, chan_roi, chan_roi_offset);
 }
 
 void Camera::setRoi(const Roi& set_roi)
@@ -878,11 +893,11 @@ void Camera::setRoi(const Roi& set_roi)
 	}
 
 	Roi hw_roi, chan_roi;
-	Point roi_offset;
-	processSetRoi(set_roi, hw_roi, chan_roi, roi_offset);
+	Point chan_roi_offset;
+	processSetRoi(set_roi, hw_roi, chan_roi, chan_roi_offset);
 
 	writeChanRoi(chan_roi);
-	m_roi_offset = roi_offset;
+	m_chan_roi_offset = chan_roi_offset;
 }
 
 void Camera::getRoi(Roi& hw_roi)
@@ -903,7 +918,7 @@ void Camera::getRoi(Roi& hw_roi)
 	Point roi_bin_offset;
 	calcImageRoi(chan_roi, roi_inside_mirror, image_roi, roi_bin_offset);
 
-	calcFinalRoi(image_roi, m_roi_offset, hw_roi);
+	calcFinalRoi(image_roi, m_chan_roi_offset, hw_roi);
 	DEB_RETURN() << DEB_VAR1(hw_roi);
 }
 
@@ -939,7 +954,10 @@ void Camera::readChanRoi(Roi& chan_roi)
 void Camera::setRoiBinOffset(const Point& roi_bin_offset)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(roi_bin_offset);
+	DEB_PARAM() << DEB_VAR2(roi_bin_offset, m_roi_bin_offset);
+
+	if (roi_bin_offset == m_roi_bin_offset)
+		return;
 
 	RoiMode roi_mode;
 	getRoiMode(roi_mode);
@@ -947,8 +965,7 @@ void Camera::setRoiBinOffset(const Point& roi_bin_offset)
 		if (!roi_bin_offset.isNull())
 			THROW_HW_ERROR(InvalidValue) << "HW Roi not active";
 		return;
-	}
-
+	} 
 	Bin bin;
 	getBin(bin);
 	Size bin_size = Point(bin);
@@ -1001,6 +1018,8 @@ void Camera::setRoiBinOffset(const Point& roi_bin_offset)
 	chan_roi = Roi(chan_tl, chan_br);
 
 	writeChanRoi(chan_roi);
+
+	m_roi_bin_offset = roi_bin_offset;
 }
 
 void Camera::getRoiBinOffset(Point& roi_bin_offset)
@@ -1023,6 +1042,28 @@ void Camera::getRoiBinOffset(Point& roi_bin_offset)
 	DEB_RETURN() << DEB_VAR1(roi_bin_offset);
 }
 
+void Camera::resetRoiBinOffset()
+{
+	DEB_MEMBER_FUNCT();
+
+	m_roi_bin_offset = 0;
+	DEB_TRACE() << "Forcing " << DEB_VAR1(m_roi_bin_offset);
+
+	int bin_y;
+	readRegister(BinVert, bin_y);
+	if (bin_y == 1)
+		return;
+
+	int roi_line_beg, bin_y_offset;
+	readRegister(RoiLineBegin, roi_line_beg);
+	bin_y_offset = roi_line_beg % bin_y;
+	if (bin_y_offset != 0) {
+		roi_line_beg -= bin_y_offset;
+		DEB_TRACE() << "Forcing alignment " << DEB_VAR2(bin_y, 
+								roi_line_beg);
+		writeRegister(RoiLineBegin, roi_line_beg);
+	}
+}
 
 void Camera::setTrigMode(TrigMode trig_mode)
 {
@@ -1183,7 +1224,8 @@ void Camera::getNbFrames(int& nb_frames)
 void Camera::setSPB2Config(SPB2Config spb2_config)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(spb2_config);
+	DEB_PARAM() << DEB_VAR1(spb2_config) 
+		    << " [" << getSPB2ConfigName(spb2_config) << "]";
 	writeRegister(ConfigHD, int(spb2_config));
 }
 
@@ -1193,7 +1235,21 @@ void Camera::getSPB2Config(SPB2Config& spb2_config)
 	int config_hd;
 	readRegister(ConfigHD, config_hd);
 	spb2_config = SPB2Config(config_hd);
-	DEB_RETURN() << DEB_VAR1(spb2_config);
+	DEB_RETURN() << DEB_VAR1(spb2_config) 
+		     << " [" << getSPB2ConfigName(spb2_config) << "]";
+}
+
+string Camera::getSPB2ConfigName(SPB2Config spb2_config)
+{
+	DEB_STATIC_FUNCT();
+	DEB_PARAM() << DEB_VAR1(spb2_config);
+
+	SPB2ConfigStrMapType::const_iterator it, end = SPB2ConfigNameMap.end();
+	it = SPB2ConfigNameMap.find(spb2_config);
+	string name = (it != end) ? it->second : "Unknown";
+
+	DEB_RETURN() << DEB_VAR1(name);
+	return name;
 }
 
 void Camera::setExtSyncEnable(ExtSync ext_sync_ena)

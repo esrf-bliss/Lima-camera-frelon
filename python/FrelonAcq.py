@@ -420,6 +420,17 @@ class FrelonAcq:
         return exp_time
 
     @DEB_MEMBER_FUNCT
+    def setSPB2Config(self, spb2_config):
+        deb.Param('Setting SPB2 config: %s' % spb2_config)
+        self.m_cam.setSPB2Config(spb2_config)
+       
+    @DEB_MEMBER_FUNCT
+    def getSPB2Config(self):
+        spb2_config = self.m_cam.getSPB2Config()
+        deb.Param('Getting SPB2 config: %s' % spb2_config)
+        return spb2_config
+    
+    @DEB_MEMBER_FUNCT
     def setFilePar(self, file_par):
         deb.Param('Setting file par: %s' % file_par)
         self.m_ct_saving.setParameters(file_par)

@@ -205,6 +205,8 @@ enum ShutMode {
 enum SPB2Config {
 	SPB2Precision, SPB2Speed,
 };
+typedef std::map<SPB2Config, std::string> SPB2ConfigStrMapType;
+extern SPB2ConfigStrMapType SPB2ConfigNameMap;
 
 } // namespace Frelon
 
