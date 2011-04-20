@@ -235,7 +235,7 @@ class RoiCtrlObj : public HwRoiCtrlObj
 	DEB_CLASS_NAMESPC(DebModCamera, "RoiCtrlObj", "Frelon");
 
  public:
-	RoiCtrlObj(Camera& cam);
+	RoiCtrlObj(Espia::Acq& acq, Camera& cam);
 	virtual ~RoiCtrlObj();
 
 	virtual void setRoi(const Roi& set_roi);
@@ -246,6 +246,10 @@ class RoiCtrlObj : public HwRoiCtrlObj
 	void unregisterRoiChangedCallback(RoiChangedCallback& roi_chg_cb);
 
  private:
+	void checkEspiaRoi(const Roi& set_roi, Roi& hw_roi, 
+			   Size& det_frame_size, Roi& espia_roi);
+
+	Espia::Acq& m_acq;
 	Camera& m_cam;
 	RoiChangedCallback *m_roi_chg_cb;
 };

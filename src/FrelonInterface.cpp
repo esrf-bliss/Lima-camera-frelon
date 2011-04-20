@@ -462,8 +462,8 @@ RoiChangedCallback::~RoiChangedCallback()
 		m_roi_ctrl_obj->unregisterRoiChangedCallback(*this);
 }
 
-RoiCtrlObj::RoiCtrlObj(Camera& cam)
-	: m_cam(cam), m_roi_chg_cb(NULL)
+RoiCtrlObj::RoiCtrlObj(Espia::Acq& acq, Camera& cam)
+	: m_acq(acq), m_cam(cam), m_roi_chg_cb(NULL)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -480,25 +480,73 @@ void RoiCtrlObj::checkRoi(const Roi& set_roi, Roi& hw_roi)
 {
 	DEB_MEMBER_FUNCT();
 	m_cam.checkRoi(set_roi, hw_roi);
+
+	Size det_frame_size;
+	Roi espia_roi;
+	checkEspiaRoi(set_roi, hw_roi, det_frame_size, espia_roi);
 }
 
-void RoiCtrlObj::setRoi(const Roi& roi)
+void RoiCtrlObj::setRoi(const Roi& set_roi)
 {
 	DEB_MEMBER_FUNCT();
-	m_cam.setRoi(roi);
+	m_cam.setRoi(set_roi);
+
+	Roi hw_roi, espia_roi;
+	m_cam.getRoi(hw_roi);
+	Size det_frame_size;
+	checkEspiaRoi(set_roi, hw_roi, det_frame_size, espia_roi);
+	m_acq.setSGRoi(det_frame_size, espia_roi);
 
 	if (m_roi_chg_cb) {
 		DEB_TRACE() << "Firing change callback";
-		Roi hw_roi;
-		getRoi(hw_roi);
 		m_roi_chg_cb->hwRoiChanged(hw_roi);
 	}
 }
 
-void RoiCtrlObj::getRoi(Roi& roi)
+void RoiCtrlObj::getRoi(Roi& hw_roi)
 {
 	DEB_MEMBER_FUNCT();
-	m_cam.getRoi(roi);
+	m_cam.getRoi(hw_roi);
+
+	Size det_frame_size;
+	Roi espia_roi;
+	m_acq.getSGRoi(det_frame_size, espia_roi);
+	if (!espia_roi.isEmpty()) {
+		if (det_frame_size != hw_roi.getSize())
+			THROW_HW_ERROR(Error) << "Camera/Espia roi mismatch: "
+					      << DEB_VAR2(det_frame_size, 
+							  hw_roi);
+		Roi final_hw_roi = hw_roi.subRoiRel2Abs(espia_roi);
+		hw_roi = final_hw_roi;
+	}
+
+	DEB_RETURN() << DEB_VAR1(hw_roi);
+}
+ 
+void RoiCtrlObj::checkEspiaRoi(const Roi& set_roi, Roi& hw_roi, 
+			       Size& det_frame_size, Roi& espia_roi)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR2(set_roi, hw_roi);
+
+	det_frame_size = hw_roi.getSize();
+
+	bool sg_roi = !set_roi.isEmpty();
+	if (sg_roi) {
+		espia_roi = hw_roi.subRoiAbs2Rel(set_roi);
+		int width = set_roi.getSize().getWidth();
+		bool horz_match = ((espia_roi.getTopLeft().x == 0) && 
+				   (espia_roi.getSize().getWidth() == width));
+		sg_roi = (horz_match && ((width % 4) == 0));
+	}
+
+	if (sg_roi) {
+		DEB_TRACE() << "Horz. aligned roi qualifies for Espia SG!";
+		hw_roi = set_roi;
+	} else
+		espia_roi.reset();
+
+	DEB_RETURN() << DEB_VAR3(hw_roi, det_frame_size, espia_roi);
 }
 
 void RoiCtrlObj::registerRoiChangedCallback(RoiChangedCallback& roi_chg_cb)
@@ -693,11 +741,11 @@ void ShutterCtrlObj::getCloseTime(double& shut_close_time) const
  * \brief Hw Interface constructor
  *******************************************************************/
 
-Interface::Interface(Acq& acq, BufferCtrlMgr& buffer_mgr,
+Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
 	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam), m_acq_end_cb(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam, m_buffer), 
-	  m_bin(cam), m_roi(cam), m_flip(cam), m_shutter(cam)
+	  m_bin(cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam)
 {
 	DEB_CONSTRUCTOR();
 

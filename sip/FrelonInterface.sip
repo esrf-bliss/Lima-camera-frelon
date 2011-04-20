@@ -204,7 +204,7 @@ class RoiCtrlObj : HwRoiCtrlObj
 %End
 
  public:
-	RoiCtrlObj(Frelon::Camera& cam);
+	RoiCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~RoiCtrlObj();
 
 	virtual void checkRoi(const Roi& set_roi, Roi& hw_roi /Out/);

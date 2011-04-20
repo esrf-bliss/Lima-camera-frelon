@@ -799,9 +799,9 @@ void Camera::calcChanRoi(const Roi& image_roi, Roi& chan_roi,
 
 	chan_roi.setCorners(chan_tl, chan_br);
 
-	Flip mirror = getMirror();
-	roi_inside_mirror.x = mirror.x && (image_tl.x > chan_br.x);
-	roi_inside_mirror.y = mirror.y && (image_tl.y > chan_br.y);
+	roi_inside_mirror = getMirror();
+	roi_inside_mirror.x &= (image_tl.x > chan_br.x);
+	roi_inside_mirror.y &= (image_tl.y > chan_br.y);
 
 	DEB_RETURN() << DEB_VAR2(chan_roi, roi_inside_mirror);
 }
