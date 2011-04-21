@@ -118,8 +118,7 @@ class SyncCtrlObj : HwSyncCtrlObj
 %End
 
  public:
-	SyncCtrlObj(Espia::Acq& acq, Frelon::Camera& cam, 
-	            Frelon::BufferCtrlObj& buffer_ctrl);
+	SyncCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~SyncCtrlObj();
 
 	virtual bool checkTrigMode(TrigMode trig_mode);

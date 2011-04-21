@@ -137,7 +137,7 @@ class SyncCtrlObj : public HwSyncCtrlObj
 	DEB_CLASS_NAMESPC(DebModCamera, "SyncCtrlObj", "Frelon");
 
  public:
-	SyncCtrlObj(Espia::Acq& acq, Camera& cam, BufferCtrlObj& buffer_ctrl);
+	SyncCtrlObj(Espia::Acq& acq, Camera& cam);
 	virtual ~SyncCtrlObj();
 
 	virtual bool checkTrigMode(TrigMode trig_mode);

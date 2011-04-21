@@ -243,8 +243,8 @@ void BufferCtrlObj::unregisterFrameCallback(HwFrameCallback& frame_cb)
  * \brief SyncCtrlObj constructor
  *******************************************************************/
 
-SyncCtrlObj::SyncCtrlObj(Acq& acq, Camera& cam, BufferCtrlObj& buffer_ctrl)
-	: HwSyncCtrlObj(buffer_ctrl), m_acq(acq), m_cam(cam)
+SyncCtrlObj::SyncCtrlObj(Acq& acq, Camera& cam)
+	: HwSyncCtrlObj(), m_acq(acq), m_cam(cam)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -696,7 +696,7 @@ void ShutterCtrlObj::getCloseTime(double& shut_close_time) const
 Interface::Interface(Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
 	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam), m_acq_end_cb(cam),
-	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam, m_buffer), 
+	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam), 
 	  m_bin(cam), m_roi(cam), m_flip(cam), m_shutter(cam)
 {
 	DEB_CONSTRUCTOR();
