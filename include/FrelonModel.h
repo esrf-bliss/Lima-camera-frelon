@@ -49,6 +49,9 @@ class Firmware
 	int getMinor() const;
 	std::string getRelease() const;
 
+	static const Firmware v2_1b;
+	static const Firmware v3_0i;
+
  private:
 	void checkValid();
 
@@ -107,7 +110,7 @@ class Model
 	~Model();
 
 	void setVersionStr(const std::string& ver);
-	Firmware& getFirmware();
+	const Firmware& getFirmware();
 
 	void setComplexSerialNb(int  complex_ser_nb);
 	void getComplexSerialNb(int& complex_ser_nb);
@@ -130,11 +133,18 @@ class Model
 	std::string getName();
 
  private:
+	void update();
 	void checkValid();
 	int getSerialNbParam(SerNbParam param);
 
 	Firmware m_firmware;
 	int m_complex_ser_nb;
+
+	bool     m_valid;
+	ChipType m_chip_type;
+	bool     m_modes_avail;
+	bool     m_time_calc;
+	bool     m_good_htd;
 };
 
 

@@ -26,6 +26,9 @@ using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
 
+const Firmware Firmware::v2_1b("2.1b");
+const Firmware Firmware::v3_0i("3.0i");
+
 Firmware::Firmware()
 {
 	DEB_CONSTRUCTOR();
@@ -108,22 +111,16 @@ bool Firmware::isValid() const
 
 int Firmware::getMajor() const
 {
-	DEB_MEMBER_FUNCT();
-	DEB_RETURN() << DEB_VAR1(m_major);
 	return m_major;
 }
 
 int Firmware::getMinor() const
 {
-	DEB_MEMBER_FUNCT();
-	DEB_RETURN() << DEB_VAR1(m_minor);
 	return m_minor;
 }
 
 string Firmware::getRelease() const
 {
-	DEB_MEMBER_FUNCT();
-	DEB_RETURN() << DEB_VAR1(m_rel);
 	return m_rel;
 }
 
@@ -152,10 +149,13 @@ void Model::setVersionStr(const std::string& ver)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(ver);
+
+	m_valid = false;
 	m_firmware.setVersionStr(ver);
+	update();
 }
 
-Firmware& Model::getFirmware()
+const Firmware& Model::getFirmware()
 {
 	return m_firmware;
 }
@@ -164,7 +164,9 @@ void Model::setComplexSerialNb(int complex_ser_nb)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(complex_ser_nb);
+
 	m_complex_ser_nb = complex_ser_nb;
+	update();
 }
 
 void Model::getComplexSerialNb(int& complex_ser_nb)
@@ -180,22 +182,46 @@ void Model::reset()
 
 	m_firmware.reset();
 	m_complex_ser_nb = 0;
+	update();
+}
+
+void Model::update()
+{
+	DEB_MEMBER_FUNCT();
+
+	m_valid = (m_complex_ser_nb > 0) && m_firmware.isValid();
+	DEB_TRACE() << DEB_VAR1(m_valid);
+	if (!m_valid)
+		return;
+
+	bool is_spb2 = isSPB2();
+	if (is_spb2)
+		m_chip_type = ChipType(getSerialNbParam(SPB2Type) >> 12);
+	else
+		m_chip_type = bool(getSerialNbParam(SPB1Kodak)) ? Kodak : Atmel;
+
+	bool firm_v2_1b = (is_spb2 && (m_firmware >= Firmware::v2_1b));
+	m_modes_avail = m_time_calc = firm_v2_1b;
+
+	bool firm_v3_0i = (is_spb2 && (m_firmware >= Firmware::v3_0i));
+	m_good_htd = firm_v3_0i;
+
+	DEB_TRACE() << DEB_VAR4(m_chip_type, m_modes_avail, m_time_calc, 
+				m_good_htd);
 }
 
 bool Model::isValid()
 {
 	DEB_MEMBER_FUNCT();
-
-	bool valid = (m_complex_ser_nb > 0) && m_firmware.isValid();
-	DEB_RETURN() << DEB_VAR1(valid);
-	return valid;
+	DEB_RETURN() << DEB_VAR1(m_valid);
+	return m_valid;
 }
 
 void Model::checkValid()
 {
 	DEB_MEMBER_FUNCT();
 
-	if (!isValid())
+	if (!m_valid)
 		THROW_HW_ERROR(InvalidValue) 
 			<< "Frelon model not fully initialised yet";
 }
@@ -256,13 +282,10 @@ ChipType Model::getChipType()
 {
 	DEB_MEMBER_FUNCT();
 
-	ChipType chip_type;
-	if (isSPB1())
-		chip_type = bool(getSerialNbParam(SPB1Kodak)) ? Kodak : Atmel;
-	else
-		chip_type = ChipType(getSerialNbParam(SPB2Type) >> 12);
-	DEB_RETURN() << DEB_VAR1(chip_type);
-	return chip_type;
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_chip_type);
+	return m_chip_type;
 }
 
 bool Model::hasTaper()
@@ -278,27 +301,30 @@ bool Model::hasModesAvail()
 {
 	DEB_MEMBER_FUNCT();
 
-	bool avail_modes = (isSPB2() && (m_firmware >= Firmware("2.1b")));
-	DEB_RETURN() << DEB_VAR1(avail_modes);
-	return avail_modes;
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_modes_avail);
+	return m_modes_avail;
 }
 
 bool Model::hasTimeCalc()
 {
 	DEB_MEMBER_FUNCT();
 
-	bool time_calc = (isSPB2() && (m_firmware >= Firmware("2.1b")));
-	DEB_RETURN() << DEB_VAR1(time_calc);
-	return time_calc;
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_time_calc);
+	return m_time_calc;
 }
 
 bool Model::hasGoodHTD()
 {
 	DEB_MEMBER_FUNCT();
 
-	bool good_htd = (isSPB2() && (m_firmware >= Firmware("3.0i")));
-	DEB_RETURN() << DEB_VAR1(good_htd);
-	return good_htd;
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_good_htd);
+	return m_good_htd;
 }
 
 double Model::getPixelSize()

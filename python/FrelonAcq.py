@@ -257,7 +257,18 @@ class FrelonAcq:
             fdim = self.m_ct_image.getImageDim()
         deb.Return('Frame dim: %s' % fdim)
         return fdim
-    
+
+    @DEB_MEMBER_FUNCT
+    def setAcqMode(self, acq_mode):
+        deb.Param('Setting acq. mode: %s' % acq_mode)
+        self.m_ct_acq.setAcqMode(acq_mode)
+        
+    @DEB_MEMBER_FUNCT
+    def getAcqMode(self):
+        acq_mode = self.m_ct_acq.getAcqMode()
+        deb.Return('Getting acq. mode: %s' % acq_mode)
+        return acq_mode
+
     @DEB_MEMBER_FUNCT
     def setFlip(self, flip):
         deb.Param('Setting flip mode: %s' % flip)
@@ -407,6 +418,33 @@ class FrelonAcq:
         nb_frames = self.m_ct_acq.getAcqNbFrames()
         deb.Return('Getting nb. frames: %s' % nb_frames)
         return nb_frames
+
+    @DEB_MEMBER_FUNCT
+    def setStripeConcat(self, stripe_concat):
+        deb.Param('Setting stripe concat.: %s' % stripe_concat)
+        if stripe_concat:
+            acq_mode = Concatenation
+        else:
+            acq_mode = Single
+        self.setAcqMode(acq_mode)
+        
+    @DEB_MEMBER_FUNCT
+    def getStripeConcat(self):
+        acq_mode = self.getAcqMode()
+        stripe_concat = (acq_mode == Concatenation)
+        deb.Return('Getting stripe concat.: %s' % stripe_concat)
+        return stripe_concat
+
+    @DEB_MEMBER_FUNCT
+    def setNbConcatFrames(self, concat_frames):
+        deb.Param('Setting nb. concat. frames: %s' % concat_frames)
+        self.m_ct_acq.setConcatNbFrames(concat_frames)
+    
+    @DEB_MEMBER_FUNCT
+    def getNbConcatFrames(self):
+        concat_frames = self.m_ct_acq.getConcatNbFrames()
+        deb.Return('Getting nb. concat. frames: %s' % concat_frames)
+        return concat_frames
     
     @DEB_MEMBER_FUNCT
     def setExpTime(self, exp_time):
@@ -429,7 +467,7 @@ class FrelonAcq:
         spb2_config = self.m_cam.getSPB2Config()
         deb.Param('Getting SPB2 config: %s' % spb2_config)
         return spb2_config
-    
+
     @DEB_MEMBER_FUNCT
     def setFilePar(self, file_par):
         deb.Param('Setting file par: %s' % file_par)
@@ -502,11 +540,11 @@ class FrelonAcq:
         self.m_ct.stopAcq()
 
     @DEB_MEMBER_FUNCT
-    def readFrame(self, frame_nb):
-        img_data = self.m_ct.ReadImage(frame_nb)
+    def readFrames(self, frame_nb, read_block_len=1):
+        img_data = self.m_ct.ReadImage(frame_nb, read_block_len)
         data = img_data.buffer
         s = data.tostring()
-        deb.Return('Getting frame #%s: %s bytes' % (frame_nb, len(s)))
+        deb.Return('Getting frame(s) #%s: %s bytes' % (frame_nb, len(s)))
         return s
         
     @DEB_MEMBER_FUNCT

@@ -44,6 +44,8 @@ class Firmware
 	int getMinor() const;
 	std::string getRelease() const;
 
+	static const Frelon::Firmware v2_1b;
+	static const Frelon::Firmware v3_0i;
 };
 
 
@@ -59,7 +61,7 @@ class Model
 	~Model();
 
 	void setVersionStr(const std::string& ver);
-	Frelon::Firmware& getFirmware();
+	const Frelon::Firmware& getFirmware();
 
 	void setComplexSerialNb(int  complex_ser_nb);
 	void getComplexSerialNb(int& complex_ser_nb /Out/);
