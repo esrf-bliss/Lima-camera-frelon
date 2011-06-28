@@ -131,6 +131,7 @@ class SerialLine : public HwSerialLine
 
 	bool isRegCacheable(Reg reg);
 	bool getRegCacheVal(Reg reg, int& val);
+	bool getRegCacheValSafe(Reg reg, int& val);
 
 	double getRegSleepTime(Reg reg);
  

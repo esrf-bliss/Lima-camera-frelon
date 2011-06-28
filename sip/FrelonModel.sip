@@ -46,6 +46,7 @@ class Firmware
 
 	static const Frelon::Firmware v2_1b;
 	static const Frelon::Firmware v3_0i;
+	static const Frelon::Firmware v3_0l;
 };
 
 
@@ -78,6 +79,7 @@ class Model
 	bool hasModesAvail();
 	bool hasTimeCalc();
 	bool hasGoodHTD();
+	bool hasReload();
 
 	double getPixelSize();
 

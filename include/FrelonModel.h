@@ -51,6 +51,7 @@ class Firmware
 
 	static const Firmware v2_1b;
 	static const Firmware v3_0i;
+	static const Firmware v3_0l;
 
  private:
 	void checkValid();
@@ -127,6 +128,7 @@ class Model
 	bool hasModesAvail();
 	bool hasTimeCalc();
 	bool hasGoodHTD();
+	bool hasReload();
 
 	double getPixelSize();
 
@@ -145,6 +147,7 @@ class Model
 	bool     m_modes_avail;
 	bool     m_time_calc;
 	bool     m_good_htd;
+	bool     m_reload;
 };
 
 

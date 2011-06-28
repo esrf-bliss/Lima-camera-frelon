@@ -28,6 +28,7 @@ using namespace std;
 
 const Firmware Firmware::v2_1b("2.1b");
 const Firmware Firmware::v3_0i("3.0i");
+const Firmware Firmware::v3_0l("3.0l");
 
 Firmware::Firmware()
 {
@@ -206,6 +207,9 @@ void Model::update()
 	bool firm_v3_0i = (is_spb2 && (m_firmware >= Firmware::v3_0i));
 	m_good_htd = firm_v3_0i;
 
+	bool firm_v3_0l = (is_spb2 && (m_firmware >= Firmware::v3_0l));
+	m_reload = firm_v3_0l;
+
 	DEB_TRACE() << DEB_VAR4(m_chip_type, m_modes_avail, m_time_calc, 
 				m_good_htd);
 }
@@ -325,6 +329,16 @@ bool Model::hasGoodHTD()
 
 	DEB_RETURN() << DEB_VAR1(m_good_htd);
 	return m_good_htd;
+}
+
+bool Model::hasReload()
+{
+	DEB_MEMBER_FUNCT();
+
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_reload);
+	return m_reload;
 }
 
 double Model::getPixelSize()

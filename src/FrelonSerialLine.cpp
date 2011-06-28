@@ -287,6 +287,12 @@ bool SerialLine::getRegCacheVal(Reg reg, int& val)
 	return in_cache;
 }
 
+bool SerialLine::getRegCacheValSafe(Reg reg, int& val)
+{
+	AutoMutex l = lock(AutoMutex::Locked);
+	return (isRegCacheable(reg) && getRegCacheVal(reg, val));
+}
+
 double SerialLine::getRegSleepTime(Reg reg)
 {
 	DEB_MEMBER_FUNCT();
@@ -453,21 +459,19 @@ void SerialLine::writeRegister(Reg reg, int  val)
 	DEB_PARAM() << DEB_VAR3(reg, reg_str, val);
 
 	int cache_val;
-	AutoMutex l = lock(AutoMutex::Locked);
-	bool ok = (isRegCacheable(reg) && getRegCacheVal(reg, cache_val));
-	l.unlock();
-	
-	if (ok && (cache_val == val)) {
+	bool in_cache = getRegCacheValSafe(reg, cache_val);
+	if (in_cache && (cache_val == val)) {
 		DEB_TRACE() << "Value already in cache";
-	} else {
-		if (reg_str.empty())
-			THROW_HW_ERROR(InvalidValue) << "Invalid "
-						     << DEB_VAR1(reg);
-		ostringstream cmd;
-		cmd << reg_str << val;
-		string resp;
-		sendFmtCmd(cmd.str(), resp);
-	}
+		return;
+	} 
+
+	if (reg_str.empty())
+		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(reg);
+
+	ostringstream cmd;
+	cmd << reg_str << val;
+	string resp;
+	sendFmtCmd(cmd.str(), resp);
 }
 
 void SerialLine::readRegister(Reg reg, int& val)
@@ -476,22 +480,20 @@ void SerialLine::readRegister(Reg reg, int& val)
 	const string& reg_str = RegStrMap[reg];
 	DEB_PARAM() << DEB_VAR2(reg, reg_str);
 
-	AutoMutex l = lock(AutoMutex::Locked);
-	bool ok = (isRegCacheable(reg) && getRegCacheVal(reg, val));
-	l.unlock();
-
-	if (ok) {
+	bool in_cache = getRegCacheValSafe(reg, val);
+	if (in_cache) {
 		DEB_TRACE() << "Using cache value";
-	} else {
-		if (reg_str.empty())
-			THROW_HW_ERROR(InvalidValue) << "Invalid "
-						     << DEB_VAR1(reg);
-		string resp;
-		sendFmtCmd(reg_str + "?", resp);
-		istringstream is(resp);
-		is >> val;
-	}
+		DEB_RETURN() << DEB_VAR1(val);
+		return;
+	} 
 
+	if (reg_str.empty())
+		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(reg);
+
+	string resp;
+	sendFmtCmd(reg_str + "?", resp);
+	istringstream is(resp);
+	is >> val;
 	DEB_RETURN() << DEB_VAR1(val);
 }
 

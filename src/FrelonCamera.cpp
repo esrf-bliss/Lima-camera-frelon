@@ -182,30 +182,52 @@ void Camera::writeRegister(Reg reg, int val)
 {
 	DEB_MEMBER_FUNCT();
 
-	static const string busy_msg = "Frelon Error: BSY";
-
 	Timestamp t0 = Timestamp::now();
-	int retry = 0;
-	do {
+	int retry;
+	bool end, prev_busy = false;
+	for (retry = 0, end = false; !end; retry++) {
+		bool fail, busy;
 		try {
 			m_ser_line.writeRegister(reg, val);
 			if (retry > 0)
 				DEB_WARNING() << "Succeeded after " << retry 
-					      << " retries";
+					      << " retrie(s)";
 			return;
 		} catch (Exception e) {
 			string err_msg = e.getErrMsg();
 			DEB_TRACE() << "Error in write: " << DEB_VAR1(err_msg);
-			bool busy = (err_msg.find(busy_msg) != string::npos);
-			if (!busy)
-				throw;
-			DEB_TRACE() << "Retrying ...";
-			retry++;
-		}
-	} while (Timestamp::now() - t0 < MaxBusyRetryTime);
 
-	THROW_HW_ERROR(Error) << "Frelon Camera still busy after "
-			      << MaxBusyRetryTime << " sec";
+			static const string fail_msg = "Frelon Error: FAI";
+			fail = (err_msg.find(fail_msg) != string::npos);
+			static const string busy_msg = "Frelon Error: BSY";
+			busy = (err_msg.find(busy_msg) != string::npos);
+
+			if (!fail && !busy)
+				throw;
+		}
+
+		if ((prev_busy != busy) && (retry > 0)) {
+			DEB_WARNING() << "Write error type changed after " 
+				      << retry << " retrie(s)! Restarting ...";
+			retry = 0;
+			t0 = Timestamp::now();
+		}
+		prev_busy = busy;
+
+		if (busy)
+			end = ((Timestamp::now() - t0) >= MaxBusyRetryTime);
+		else
+			end = (retry > 0);
+		if (!end)
+			DEB_TRACE() << "Retrying ...";
+	}
+
+	if (prev_busy)
+		THROW_HW_ERROR(Error) << "Frelon Camera still busy after "
+				      << MaxBusyRetryTime << " sec";
+	else
+		THROW_HW_ERROR(Error) << "Frelon Camera still failing after "
+				      << retry << " retrie(s)";
 }
 
 void Camera::readRegister(Reg reg, int& val)
