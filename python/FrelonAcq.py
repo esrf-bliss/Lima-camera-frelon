@@ -487,7 +487,7 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def writeFile(self, frame_nb):
         deb.Param('Writing frame %s to file' % frame_nb)
-        raise Exception, 'On-demand file writing not implemented yet'
+        self.m_ct_saving.writeFrame(frame_nb)
 
     @DEB_MEMBER_FUNCT
     def setAutosave(self, autosave_act):
