@@ -94,6 +94,7 @@ static const RegPair RegStrCList[] = {
 	RegPair(StatusAMTD,	"SAD"),
 
 	RegPair(LookUpTable,	"LUT"),
+	RegPair(ImagesPerEOF,	"NEF"),
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -103,7 +104,7 @@ static Reg CacheableRegCList[] = {
 	ChanMode,	TimeUnit,	RoiEnable,	RoiFast,
 	RoiKinetic,	BinVert,	BinHorz,	ConfigHD,
 	ShutEnable,	HardTrigDisable, FlipMode,	CompSerNb,
-	CcdModesAvail,
+	CcdModesAvail,	ImagesPerEOF,
 };
 RegListType 
 lima::Frelon::CacheableRegList(C_LIST_ITERS(CacheableRegCList));
@@ -147,7 +148,7 @@ lima::Frelon::MultiLineCmdStrMap(C_LIST_ITERS(MLCmdStrCList));
 typedef pair<FrameTransferMode, ChanRange> RangePair;
 static const RangePair FTMChanRangeCList[] = {
 	RangePair(FFM, ChanRange(1,  10)),
-	RangePair(FTM, ChanRange(10, 13)),
+	RangePair(FTM, ChanRange(10, 17)),
 };
 FTMChanRangeMapType 
 lima::Frelon::FTMChanRangeMap(C_LIST_ITERS(FTMChanRangeCList));
@@ -157,7 +158,7 @@ static const InputChan FFMInputChanCList[] = {
 	Chan1, Chan2, Chan3, Chan4, Chan13, Chan24, Chan12, Chan34, Chan1234,
 };
 static const InputChan FTMInputChanCList[] = {
-	Chan1234, Chan34, Chan12,
+	Chan1234, Chan34, Chan12, Chan24, Chan13, Chan4, Chan1,
 };
 typedef pair<FrameTransferMode, InputChanList> InputChanPair;
 static const InputChanPair FTMInputChanListCList[] = {

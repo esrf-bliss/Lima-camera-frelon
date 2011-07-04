@@ -49,7 +49,7 @@ enum Reg {
 	SingleVertXfer,	SingleHorzXfer,	AllVertXfer,	AllHorzXfer,
 	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
 	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
-	LookUpTable,
+	LookUpTable,	ImagesPerEOF,
 };
 
 typedef std::map<Reg, std::string> RegStrMapType;

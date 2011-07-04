@@ -28,7 +28,7 @@ using namespace std;
 
 const Firmware Firmware::v2_1b("2.1b");
 const Firmware Firmware::v3_0i("3.0i");
-const Firmware Firmware::v3_0l("3.0l");
+const Firmware Firmware::v3_1c("3.1c");
 
 Firmware::Firmware()
 {
@@ -207,11 +207,11 @@ void Model::update()
 	bool firm_v3_0i = (is_spb2 && (m_firmware >= Firmware::v3_0i));
 	m_good_htd = firm_v3_0i;
 
-	bool firm_v3_0l = (is_spb2 && (m_firmware >= Firmware::v3_0l));
-	m_reload = firm_v3_0l;
+	bool firm_v3_1c = (is_spb2 && (m_firmware >= Firmware::v3_1c));
+	m_images_per_eof = firm_v3_1c;
 
-	DEB_TRACE() << DEB_VAR4(m_chip_type, m_modes_avail, m_time_calc, 
-				m_good_htd);
+	DEB_TRACE() << DEB_VAR5(m_chip_type, m_modes_avail, m_time_calc, 
+				m_good_htd, m_images_per_eof);
 }
 
 bool Model::isValid()
@@ -331,14 +331,14 @@ bool Model::hasGoodHTD()
 	return m_good_htd;
 }
 
-bool Model::hasReload()
+bool Model::hasImagesPerEOF()
 {
 	DEB_MEMBER_FUNCT();
 
 	checkValid();
 
-	DEB_RETURN() << DEB_VAR1(m_reload);
-	return m_reload;
+	DEB_RETURN() << DEB_VAR1(m_images_per_eof);
+	return m_images_per_eof;
 }
 
 double Model::getPixelSize()
@@ -364,6 +364,7 @@ string Model::getName()
 	case E2V_2kNotMPP: chip_model = "E231-42"; break;
 	case E2V_4k:       chip_model = "E230-84"; break;
 	case E2V_4kNotMPP: chip_model = "E231-84"; break;
+	case Hama:         chip_model = "Hama";    break;
 	default:           chip_model = "Unknown";
 	}
 
