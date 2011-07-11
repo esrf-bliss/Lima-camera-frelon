@@ -243,6 +243,11 @@ class FrelonAcq:
         return ct_status
         
     @DEB_MEMBER_FUNCT
+    def resetStatus(self):
+        deb.Trace('Reseting global status')
+        self.m_ct.resetStatus(True)
+        
+    @DEB_MEMBER_FUNCT
     def getCcdStatus(self):
         ccd_status = self.m_cam.getStatus()
         deb.Return('Getting CCD status: 0x%02X' % ccd_status)
