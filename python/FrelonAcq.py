@@ -193,23 +193,26 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def checkE2VCorrection(self):
         deb.Trace('Checking E2V correction')
-        ct_status = self.m_ct.getStatus()
-        if ct_status.AcquisitionStatus == AcqRunning:
-            raise Exception, 'Acquisition is running'
-        
         chip_type = self.m_cam.getModel().getChipType()
         is_e2v = (chip_type == Frelon.E2V_2k)
         corr_act = (is_e2v and self.m_e2v_corr_act)
         deb.Param('is_e2v=%s, self.m_e2v_corr_act=%s' % (is_e2v,
                                                          self.m_e2v_corr_act))
-        if corr_act and not self.m_e2v_corr:
+        if bool(corr_act) == bool(self.m_e2v_corr):
+            return
+
+        ct_status = self.m_ct.getStatus()
+        if ct_status.AcquisitionStatus == AcqRunning:
+            raise Exception, 'Acquisition is running'
+        
+        if corr_act:
             deb.Trace('Enabling E2V correction')
             self.m_e2v_corr = Frelon.E2VCorrection()
             self.m_e2v_corr_update = self.E2VCorrectionUpdate(self.m_e2v_corr,
                                                               self.m_hw_inter)
             self.m_e2v_corr_update.setRegistrationActive(True)
             self.m_ct.setReconstructionTask(self.m_e2v_corr)
-        elif not corr_act and self.m_e2v_corr:
+        else:
             deb.Trace('Disabling E2V correction')
             self.m_ct.setReconstructionTask(None)
             self.m_e2v_corr_update.setRegistrationActive(False)
@@ -474,14 +477,25 @@ class FrelonAcq:
         return spb2_config
 
     @DEB_MEMBER_FUNCT
-    def setFilePar(self, file_par):
-        deb.Param('Setting file par: %s' % file_par)
-        self.m_ct_saving.setParameters(file_par)
+    def setFileStreamAct(self, act, stream_idx):
+        deb.Param('Setting file stream %d act: %s' % (stream_idx, act))
+        self.m_ct_saving.setStreamActive(stream_idx, act)
         
     @DEB_MEMBER_FUNCT
-    def getFilePar(self):
-        file_par = self.m_ct_saving.getParameters()
-        deb.Return('Getting file par: %s' % file_par)
+    def getFileStreamAct(self, stream_idx):
+        act = self.m_ct_saving.getStreamActive(stream_idx)
+        deb.Return('Getting file stream %d act: %s' % (stream_idx, act))
+        return act
+        
+    @DEB_MEMBER_FUNCT
+    def setFileStreamPar(self, file_par, stream_idx=0):
+        deb.Param('Setting file stream %d par: %s' % (stream_idx, file_par))
+        self.m_ct_saving.setParameters(file_par, stream_idx)
+        
+    @DEB_MEMBER_FUNCT
+    def getFileStreamPar(self, stream_idx=0):
+        file_par = self.m_ct_saving.getParameters(stream_idx)
+        deb.Return('Getting file stream %d par: %s' % (stream_idx, file_par))
         return file_par
 
     @DEB_MEMBER_FUNCT
