@@ -32,7 +32,7 @@ using namespace std;
  *******************************************************************/
 
 Frelon::AcqEndCallback::AcqEndCallback(Camera& cam) 
-  : m_cam(cam)
+	: m_cam(cam)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -531,7 +531,7 @@ void RoiCtrlObj::checkEspiaRoi(const Roi& set_roi, Roi& hw_roi,
 
 	det_frame_size = hw_roi.getSize();
 
-	bool sg_roi = !set_roi.isEmpty();
+	bool sg_roi = (!set_roi.isEmpty() && (hw_roi != set_roi));
 	if (sg_roi) {
 		espia_roi = hw_roi.subRoiAbs2Rel(set_roi);
 		int width = set_roi.getSize().getWidth();

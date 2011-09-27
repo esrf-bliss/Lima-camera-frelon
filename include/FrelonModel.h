@@ -49,6 +49,7 @@ class Firmware
 	int getMinor() const;
 	std::string getRelease() const;
 
+	static const Firmware v2_0c;
 	static const Firmware v2_1b;
 	static const Firmware v3_0i;
 	static const Firmware v3_1c;
@@ -127,6 +128,7 @@ class Model
 	bool hasTaper();
 	bool hasModesAvail();
 	bool hasTimeCalc();
+	bool hasHTDCmd();
 	bool hasGoodHTD();
 	bool hasImagesPerEOF();
 
@@ -146,6 +148,7 @@ class Model
 	ChipType m_chip_type;
 	bool     m_modes_avail;
 	bool     m_time_calc;
+	bool     m_htd_cmd;
 	bool     m_good_htd;
 	bool     m_images_per_eof;
 };

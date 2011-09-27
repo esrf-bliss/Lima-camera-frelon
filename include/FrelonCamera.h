@@ -137,6 +137,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void sync();
 	void syncRegs();
 	void syncRegsGoodHTD();
+	void syncRegsBadHTD();
 
 	void sendCmd(Cmd cmd);
 
@@ -181,6 +182,10 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setTimeUnitFactor(TimeUnitFactor  time_unit_factor);
 	void getTimeUnitFactor(TimeUnitFactor& time_unit_factor);
 
+	double getMaxIdleWaitTime();
+	bool waitIdleStatus(Status& status, bool use_ser_line=false,
+			    bool read_spb2=false);
+
 	AutoMutex lock();
 
 	SerialLine m_ser_line;
@@ -203,6 +208,14 @@ inline bool Camera::isChanActive(InputChan curr, InputChan chan)
 inline AutoMutex Camera::lock()
 {
 	return AutoMutex(m_lock);
+}
+
+inline bool Camera::waitIdleStatus(Status& status, bool use_ser_line, 
+				   bool read_spb2)
+{
+	status = Wait;
+	return waitStatus(status, StatusMask, getMaxIdleWaitTime(),
+			  use_ser_line, read_spb2);
 }
 
 

@@ -26,6 +26,7 @@ using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
 
+const Firmware Firmware::v2_0c("2.0c");
 const Firmware Firmware::v2_1b("2.1b");
 const Firmware Firmware::v3_0i("3.0i");
 const Firmware Firmware::v3_1c("3.1c");
@@ -164,7 +165,7 @@ const Firmware& Model::getFirmware()
 void Model::setComplexSerialNb(int complex_ser_nb)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(complex_ser_nb);
+	DEB_PARAM() << DEB_VAR1(DEB_HEX(complex_ser_nb));
 
 	m_complex_ser_nb = complex_ser_nb;
 	update();
@@ -174,7 +175,7 @@ void Model::getComplexSerialNb(int& complex_ser_nb)
 {
 	DEB_MEMBER_FUNCT();
 	complex_ser_nb = m_complex_ser_nb;
-	DEB_RETURN() << DEB_VAR1(complex_ser_nb);
+	DEB_RETURN() << DEB_VAR1(DEB_HEX(complex_ser_nb));
 }
 
 void Model::reset()
@@ -200,6 +201,9 @@ void Model::update()
 		m_chip_type = ChipType(getSerialNbParam(SPB2Type) >> 12);
 	else
 		m_chip_type = bool(getSerialNbParam(SPB1Kodak)) ? Kodak : Atmel;
+
+	bool firm_v2_0c = (is_spb2 && (m_firmware >= Firmware::v2_0c));
+	m_htd_cmd = firm_v2_0c;
 
 	bool firm_v2_1b = (is_spb2 && (m_firmware >= Firmware::v2_1b));
 	m_modes_avail = m_time_calc = firm_v2_1b;
@@ -319,6 +323,16 @@ bool Model::hasTimeCalc()
 
 	DEB_RETURN() << DEB_VAR1(m_time_calc);
 	return m_time_calc;
+}
+
+bool Model::hasHTDCmd()
+{
+	DEB_MEMBER_FUNCT();
+
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_htd_cmd);
+	return m_htd_cmd;
 }
 
 bool Model::hasGoodHTD()

@@ -104,6 +104,9 @@ void Camera::syncRegs()
 
 	if (m_model.hasGoodHTD())
 		syncRegsGoodHTD();
+	else 
+		syncRegsBadHTD();
+
 
 	double exp_time;
 	getExpTime(exp_time);
@@ -134,10 +137,8 @@ void Camera::syncRegsGoodHTD()
 	do {
 		setExtSyncEnable(ExtSyncNone);
 		sendCmd(Stop);
-		status = Wait;
-		waitStatus(status, StatusMask, MaxIdleWaitTime, 
-			   use_ser_line, read_spb2);
-		if (status == Wait) {
+		bool ok = waitIdleStatus(status, use_ser_line, read_spb2);
+		if (ok) {
 			if (retry > 0)
 				DEB_TRACE() << "Succeeded after " << retry 
 					    << " retries";
@@ -152,6 +153,42 @@ void Camera::syncRegsGoodHTD()
 		THROW_HW_ERROR(Error) << "Wrong camera BUSY status: "
 				      << DEB_VAR1(DEB_HEX(status));
 }
+
+
+void Camera::syncRegsBadHTD()
+{
+	DEB_MEMBER_FUNCT();
+
+	Status status;
+	getStatus(status);
+	if ((status != 0) && (status != Wait)) {
+		DEB_WARNING() << "Camera not IDLE: " 
+			      << DEB_VAR1(DEB_HEX(status));
+		double exp_time;
+		getExpTime(exp_time);
+		if (exp_time > 0) {
+			DEB_TRACE() << "Sending software STOP ...";
+			sendCmd(Stop);
+		}
+
+		if (waitIdleStatus(status))
+			DEB_TRACE() << "Succeeded";
+		else
+			DEB_WARNING() << "Camera still not IDLE: " 
+				      << DEB_VAR1(DEB_HEX(status));
+	}
+					  
+	Espia::Dev& dev = getEspiaDev();
+	DEB_TRACE() << "Forcing Aurora link reset on old firmware!";
+	dev.resetLink();
+	DEB_TRACE() << "Sleeping additional "
+		    << DEB_VAR1(Frelon::Camera::ResetLinkWaitTime);
+	Sleep(ResetLinkWaitTime);
+
+	if (m_model.hasHTDCmd())
+		setExtSyncEnable(ExtSyncBoth);
+}
+
 
 SerialLine& Camera::getSerialLine()
 {
@@ -1136,25 +1173,34 @@ void Camera::setExpTime(double exp_time)
 		DEB_TRACE() << "Ignoring " << DEB_VAR1(exp_time) 
 			    << " in ExtGate trigger mode";
 		return;
-	}
-
-	bool ok = false;
-	int exp_val;
-	TimeUnitFactor seq_clist[] = { Microseconds, Milliseconds };
-	TimeUnitFactor *it, *end = C_LIST_END(seq_clist);
-	for (it = seq_clist; it != end; ++it) {
-		double factor = TimeUnitFactorMap[*it];
-		exp_val = int(exp_time / factor + 0.1);
-		ok = (exp_val <= MaxRegVal);
-		if (ok)
-			break;
-	}
-	if (!ok)
-		THROW_HW_ERROR(InvalidValue) << "Exp. time too high: " 
+	} else if (exp_time < 0)
+		THROW_HW_ERROR(InvalidValue) << "Invalid negative "
 					     << DEB_VAR1(exp_time);
+	double MaxExp = MaxRegVal * TimeUnitFactorMap[Milliseconds]; 
+	if (exp_time > MaxExp) 
+		THROW_HW_ERROR(InvalidValue) << "Exp. time too high: " 
+					     << DEB_VAR2(exp_time, MaxExp);
+	double MinExp = 1 * TimeUnitFactorMap[Microseconds];
+	if ((exp_time > 0) && (exp_time < MinExp)) {
+		DEB_WARNING() << "Rounding non-null " << DEB_VAR1(exp_time)
+			      << " to " << DEB_VAR1(MinExp);
+		exp_time = MinExp;
+	}
 
-	TimeUnitFactor time_unit_factor = (exp_val == 0) ? Milliseconds : *it;
-	setTimeUnitFactor(time_unit_factor);
+	int exp_us = int(exp_time / TimeUnitFactorMap[Microseconds] + 0.1);
+	int exp_ms = int(exp_time / TimeUnitFactorMap[Milliseconds] + 0.1);
+
+	int exp_val;
+	TimeUnitFactor time_unit;
+	if ((exp_us <= MaxRegVal) && (exp_us != exp_ms * 1000)) {
+		exp_val = exp_us;
+		time_unit = Microseconds;
+	} else {
+		exp_val = exp_ms;
+		time_unit = Milliseconds;
+	}
+
+	setTimeUnitFactor(time_unit);
 	writeRegister(ExpTime, exp_val);
 }
 
@@ -1376,6 +1422,9 @@ void Camera::start()
 
 	AutoMutex l = lock();
 
+	if (m_started)
+		THROW_HW_ERROR(InvalidValue) << "Camera already running!";
+
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
 	if (trig_mode == IntTrig) {
@@ -1431,9 +1480,13 @@ void Camera::stop()
 	}
 
 	DEB_TRACE() << "Waiting for camera to become idle";
-	status = Wait;
-	waitStatus(status, StatusMask, MaxIdleWaitTime);
-
+	Timestamp t0 = Timestamp::now();
+	bool idle = waitIdleStatus(status);
+	double wait_time = Timestamp::now() - t0;
+	DEB_TRACE() << "Waited " << DEB_VAR2(wait_time, idle);
+	if (!idle)
+		DEB_WARNING() << "Camera not idle after " 
+			      << DEB_VAR1(wait_time);
 	m_started = false;
 }
 
@@ -1448,4 +1501,22 @@ bool Camera::isRunning()
 void Camera::setMaxImageSizeCallbackActive(bool cb_active)
 {
 	m_mis_cb_act = cb_active;
+}
+
+double Camera::getMaxIdleWaitTime()
+{
+	DEB_MEMBER_FUNCT();
+
+	double max_wait_time = MaxIdleWaitTime;
+	if (!m_model.hasGoodHTD()) {
+		double exp_time;
+		getExpTime(exp_time);
+		if (exp_time > 0) {
+			max_wait_time += exp_time;
+			DEB_TRACE() << "Adjusted " << DEB_VAR1(max_wait_time);
+		}
+	}
+
+	DEB_RETURN() << DEB_VAR1(max_wait_time);
+	return max_wait_time;
 }

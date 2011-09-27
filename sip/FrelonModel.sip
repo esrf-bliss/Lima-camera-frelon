@@ -44,6 +44,7 @@ class Firmware
 	int getMinor() const;
 	std::string getRelease() const;
 
+	static const Frelon::Firmware v2_0c;
 	static const Frelon::Firmware v2_1b;
 	static const Frelon::Firmware v3_0i;
 	static const Frelon::Firmware v3_1c;
@@ -78,6 +79,7 @@ class Model
 	bool hasTaper();
 	bool hasModesAvail();
 	bool hasTimeCalc();
+	bool hasHTDCmd();
 	bool hasGoodHTD();
 	bool hasImagesPerEOF();
 

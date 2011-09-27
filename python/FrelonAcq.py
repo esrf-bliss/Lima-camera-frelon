@@ -504,9 +504,10 @@ class FrelonAcq:
         self.m_ct_saving.setCommonHeader(header_map)
         
     @DEB_MEMBER_FUNCT
-    def writeFile(self, frame_nb):
-        deb.Param('Writing frame %s to file' % frame_nb)
-        self.m_ct_saving.writeFrame(frame_nb)
+    def writeFile(self, frame_nb, nb_frames=1):
+        deb.Param('Writing %d frame(s) starting from %s to file' % 
+                  (nb_frames, frame_nb))
+        self.m_ct_saving.writeFrame(frame_nb, nb_frames)
 
     @DEB_MEMBER_FUNCT
     def setAutosave(self, autosave_act):
