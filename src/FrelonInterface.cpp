@@ -106,12 +106,12 @@ void DetInfoCtrlObj::setCurrImageType(ImageType curr_image_type)
 			<< "Only " << DEB_VAR1(unique_image_type) << "allowed";
 }
 
-void DetInfoCtrlObj::getPixelSize(double& pixel_size)
+void DetInfoCtrlObj::getPixelSize(double& x_size,double& y_size)
 {
 	DEB_MEMBER_FUNCT();
 	Model& model = m_cam.getModel();
-	pixel_size = model.getPixelSize();
-	DEB_RETURN() << DEB_VAR1(pixel_size);
+	x_size = y_size = model.getPixelSize();
+	DEB_RETURN() << DEB_VAR1(x_size);
 }
 
 void DetInfoCtrlObj::getDetectorType(std::string& det_type)
