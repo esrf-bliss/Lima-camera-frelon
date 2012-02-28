@@ -56,6 +56,27 @@ class AcqEndCallback : public Espia::AcqEndCallback
 
 
 /*******************************************************************
+ * \class EventCallback
+ * \brief Bridge class transfering events from Acq -> HwEventCtrlObj
+ *******************************************************************/
+
+class EventCallback : public lima::EventCallback
+{
+	DEB_CLASS_NAMESPC(DebModCamera, "EventCallback", "Frelon");
+
+ public:
+	EventCallback(HwEventCtrlObj& ctrl_obj);
+	virtual ~EventCallback();
+
+ protected:
+	virtual void processEvent(Event *event);
+
+ private:
+	HwEventCtrlObj& m_ctrl_obj;
+};
+
+
+/*******************************************************************
  * \class DetInfoCtrlObj
  * \brief Control object providing Frelon detector info interface
  *******************************************************************/
@@ -75,7 +96,7 @@ class DetInfoCtrlObj : public HwDetInfoCtrlObj
 	virtual void getCurrImageType(ImageType& curr_image_type);
 	virtual void setCurrImageType(ImageType  curr_image_type);
 
-	virtual void getPixelSize(double& pixel_size);
+	virtual void getPixelSize(double& x_size, double& y_size);
 	virtual void getDetectorType(std::string& det_type);
 	virtual void getDetectorModel(std::string& det_model);
 
@@ -308,6 +329,20 @@ public:
 };
 
 /*******************************************************************
+ * \class EventCtrlObj
+ * \brief Control object providing Frelon event interface
+ *******************************************************************/
+
+class EventCtrlObj : public HwEventCtrlObj
+{
+	DEB_CLASS(DebModCamera, "EventCtrlObj");
+
+public:
+	EventCtrlObj();
+	virtual ~EventCtrlObj();
+};
+
+/*******************************************************************
  * \class Interface
  * \brief Frelon hardware interface
  *******************************************************************/
@@ -334,8 +369,6 @@ class Interface : public HwInterface
 	BufferCtrlMgr& m_buffer_mgr;
 	Camera&        m_cam;
 
-	Frelon::AcqEndCallback m_acq_end_cb;
-
 	CapList m_cap_list;
 	DetInfoCtrlObj m_det_info;
 	BufferCtrlObj  m_buffer;
@@ -344,6 +377,10 @@ class Interface : public HwInterface
 	RoiCtrlObj     m_roi;
 	FlipCtrlObj    m_flip;
 	ShutterCtrlObj m_shutter;
+	EventCtrlObj   m_event;
+
+	Frelon::AcqEndCallback m_acq_end_cb;
+	Frelon::EventCallback  m_event_cb;
 };
 
 

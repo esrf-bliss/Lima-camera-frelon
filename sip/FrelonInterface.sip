@@ -44,6 +44,23 @@ class AcqEndCallback : Espia::AcqEndCallback
 };
 
 
+class EventCallback : EventCallback
+{
+
+%TypeHeaderCode
+#include "FrelonInterface.h"
+#include <algorithm>
+%End
+
+ public:
+	EventCallback(HwEventCtrlObj& ctrl_obj);
+	virtual ~EventCallback();
+
+ protected:
+	virtual void processEvent(Event *event);
+};
+
+
 class DetInfoCtrlObj : HwDetInfoCtrlObj
 {
 
@@ -63,7 +80,7 @@ class DetInfoCtrlObj : HwDetInfoCtrlObj
 	virtual void getCurrImageType(ImageType& curr_image_type /Out/);
 	virtual void setCurrImageType(ImageType  curr_image_type);
 
-	virtual void getPixelSize(double& pixel_size /Out/);
+	virtual void getPixelSize(double& x_size /Out/, double& y_size /Out/);
 	virtual void getDetectorType(std::string& det_type /Out/);
 	virtual void getDetectorModel(std::string& det_model /Out/);
 
@@ -258,6 +275,20 @@ public:
 	virtual void setCloseTime(double  shut_close_time);
 	virtual void getCloseTime(double& shut_close_time /Out/);
 
+};
+
+
+class EventCtrlObj : HwEventCtrlObj
+{
+
+%TypeHeaderCode
+#include "FrelonInterface.h"
+#include <algorithm>
+%End
+
+public:
+	EventCtrlObj();
+	virtual ~EventCtrlObj();
 };
 
 

@@ -181,6 +181,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 	
 	void setTimeUnitFactor(TimeUnitFactor  time_unit_factor);
 	void getTimeUnitFactor(TimeUnitFactor& time_unit_factor);
+	int  calcTimeUnits(double time_sec, TimeUnitFactor time_unit_factor);
 
 	double getMaxIdleWaitTime();
 	bool waitIdleStatus(Status& status, bool use_ser_line=false,

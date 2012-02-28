@@ -320,7 +320,7 @@ int Camera::getModesAvail()
 	else
 		modes_avail = AtmelModesAvail;
 		
-	DEB_RETURN() << DEB_VAR1(modes_avail);
+	DEB_RETURN() << DEB_VAR1(DEB_HEX(modes_avail));
 	return modes_avail;
 }
 
@@ -447,7 +447,8 @@ void Camera::getDefInputChan(FrameTransferMode ftm, InputChan& input_chan)
 
 	if (!valid_mode) 
 		THROW_HW_ERROR(Error) << "Could not find valid " << ftm 
-				      << "mode: " << DEB_VAR1(modes_avail);
+				      << "mode: " 
+				      << DEB_VAR1(DEB_HEX(modes_avail));
 
 	DEB_RETURN() << DEB_VAR1(DEB_HEX(input_chan)) 
 		     << " [" << getInputChanModeName(ftm, input_chan) << "]";
@@ -1162,6 +1163,11 @@ void Camera::getTimeUnitFactor(TimeUnitFactor& time_unit_factor)
 	DEB_RETURN() << DEB_VAR1(time_unit_factor);
 }
 
+int Camera::calcTimeUnits(double time_sec, TimeUnitFactor time_unit_factor)
+{
+	return int(time_sec / TimeUnitFactorMap[time_unit_factor] + 0.1);
+}
+
 void Camera::setExpTime(double exp_time)
 {
 	DEB_MEMBER_FUNCT();
@@ -1187,8 +1193,8 @@ void Camera::setExpTime(double exp_time)
 		exp_time = MinExp;
 	}
 
-	int exp_us = int(exp_time / TimeUnitFactorMap[Microseconds] + 0.1);
-	int exp_ms = int(exp_time / TimeUnitFactorMap[Milliseconds] + 0.1);
+	int exp_us = calcTimeUnits(exp_time, Microseconds);
+	int exp_ms = calcTimeUnits(exp_time, Milliseconds);
 
 	int exp_val;
 	TimeUnitFactor time_unit;
@@ -1236,7 +1242,9 @@ void Camera::setShutCloseTime(double shut_time)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(shut_time);
-	int shut_val = int(shut_time / TimeUnitFactorMap[Milliseconds] + 0.1);
+	TimeUnitFactor time_unit_factor;
+	getTimeUnitFactor(time_unit_factor);
+	int shut_val = calcTimeUnits(shut_time, time_unit_factor);
 	if (shut_val > MaxRegVal)
 		THROW_HW_ERROR(InvalidValue) << "Shutter close time too high: "
 					     << DEB_VAR1(shut_time);
@@ -1246,9 +1254,11 @@ void Camera::setShutCloseTime(double shut_time)
 void Camera::getShutCloseTime(double& shut_time)
 {
 	DEB_MEMBER_FUNCT();
+	TimeUnitFactor time_unit_factor;
+	getTimeUnitFactor(time_unit_factor);
 	int shut_val;
 	readRegister(ShutCloseTime, shut_val);
-	shut_time = shut_val * TimeUnitFactorMap[Milliseconds];
+	shut_time = shut_val * TimeUnitFactorMap[time_unit_factor];
 	DEB_RETURN() << DEB_VAR1(shut_time);
 }
 
@@ -1256,16 +1266,20 @@ void Camera::setLatTime(double lat_time)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(lat_time);
-	int lat_val = int(lat_time / TimeUnitFactorMap[Milliseconds] + 0.1);
+	TimeUnitFactor time_unit_factor;
+	getTimeUnitFactor(time_unit_factor);
+	int lat_val = calcTimeUnits(lat_time, time_unit_factor);
 	writeRegister(LatencyTime, lat_val);
 }
 
 void Camera::getLatTime(double& lat_time)
 {
 	DEB_MEMBER_FUNCT();
+	TimeUnitFactor time_unit_factor;
+	getTimeUnitFactor(time_unit_factor);
 	int lat_val;
 	readRegister(LatencyTime, lat_val);
-	lat_time = lat_val * TimeUnitFactorMap[Milliseconds];
+	lat_time = lat_val * TimeUnitFactorMap[time_unit_factor];
 	DEB_RETURN() << DEB_VAR1(lat_time);
 }
 
@@ -1292,6 +1306,9 @@ void Camera::getNbFrames(int& nb_frames)
 void Camera::setSPB2Config(SPB2Config spb2_config)
 {
 	DEB_MEMBER_FUNCT();
+	if (m_model.isSPB1())
+		THROW_HW_ERROR(NotSupported) << "Camera is SPB1: SPB2 config " 
+					     << "not supported by hardware!";
 	DEB_PARAM() << DEB_VAR1(spb2_config) 
 		    << " [" << getSPB2ConfigName(spb2_config) << "]";
 	writeRegister(ConfigHD, int(spb2_config));
@@ -1300,6 +1317,9 @@ void Camera::setSPB2Config(SPB2Config spb2_config)
 void Camera::getSPB2Config(SPB2Config& spb2_config)
 {
 	DEB_MEMBER_FUNCT();
+	if (m_model.isSPB1())
+		THROW_HW_ERROR(NotSupported) << "Camera is SPB1: SPB2 config " 
+					     << "not supported by hardware!";
 	int config_hd;
 	readRegister(ConfigHD, config_hd);
 	spb2_config = SPB2Config(config_hd);
@@ -1323,6 +1343,9 @@ string Camera::getSPB2ConfigName(SPB2Config spb2_config)
 void Camera::setExtSyncEnable(ExtSync ext_sync_ena)
 {
 	DEB_MEMBER_FUNCT();
+	if (!m_model.hasHTDCmd())
+		THROW_HW_ERROR(NotSupported) << "Camera does not have "
+					     << "HTD cmd: upgrade firmware";
 	DEB_PARAM() << DEB_VAR1(ext_sync_ena);
 	int hard_trig_dis = int(~ext_sync_ena) & ExtSyncBoth;
 	writeRegister(HardTrigDisable, hard_trig_dis);
@@ -1331,6 +1354,9 @@ void Camera::setExtSyncEnable(ExtSync ext_sync_ena)
 void Camera::getExtSyncEnable(ExtSync& ext_sync_ena)
 {
 	DEB_MEMBER_FUNCT();
+	if (!m_model.hasHTDCmd())
+		THROW_HW_ERROR(NotSupported) << "Camera does not have "
+					     << "HTD cmd: upgrade firmware";
 	int hard_trig_dis;
 	readRegister(HardTrigDisable, hard_trig_dis);
 	ext_sync_ena = ExtSync(~hard_trig_dis & ExtSyncBoth);

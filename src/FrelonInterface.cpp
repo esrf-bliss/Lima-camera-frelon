@@ -50,6 +50,28 @@ void Frelon::AcqEndCallback::acqFinished(const HwFrameInfoType& /*finfo*/)
 
 
 /*******************************************************************
+ * \brief EventCallback constructor
+ *******************************************************************/
+
+Frelon::EventCallback::EventCallback(HwEventCtrlObj& ctrl_obj) 
+	: m_ctrl_obj(ctrl_obj)
+{
+	DEB_CONSTRUCTOR();
+}
+
+Frelon::EventCallback::~EventCallback()
+{
+	DEB_DESTRUCTOR();
+}
+
+void Frelon::EventCallback::processEvent(Event *event)
+{
+	DEB_MEMBER_FUNCT();
+	m_ctrl_obj.reportEvent(event);
+}
+
+
+/*******************************************************************
  * \brief DetInfoCtrlObj constructor
  *******************************************************************/
 
@@ -106,12 +128,12 @@ void DetInfoCtrlObj::setCurrImageType(ImageType curr_image_type)
 			<< "Only " << DEB_VAR1(unique_image_type) << "allowed";
 }
 
-void DetInfoCtrlObj::getPixelSize(double& pixel_size)
+void DetInfoCtrlObj::getPixelSize(double& x_size, double& y_size)
 {
 	DEB_MEMBER_FUNCT();
 	Model& model = m_cam.getModel();
-	pixel_size = model.getPixelSize();
-	DEB_RETURN() << DEB_VAR1(pixel_size);
+	x_size = y_size = model.getPixelSize();
+	DEB_RETURN() << DEB_VAR2(x_size, y_size);
 }
 
 void DetInfoCtrlObj::getDetectorType(std::string& det_type)
@@ -738,18 +760,35 @@ void ShutterCtrlObj::getCloseTime(double& shut_close_time) const
 
 
 /*******************************************************************
+ * \brief ShutterCtrlObj constructor
+ *******************************************************************/
+
+EventCtrlObj::EventCtrlObj()
+{
+	DEB_CONSTRUCTOR();
+}
+
+EventCtrlObj::~EventCtrlObj()
+{
+	DEB_DESTRUCTOR();
+}
+
+
+/*******************************************************************
  * \brief Hw Interface constructor
  *******************************************************************/
 
 Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
-	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam), m_acq_end_cb(cam),
+	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam), 
-	  m_bin(cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam)
+	  m_bin(cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam),
+	  m_acq_end_cb(cam), m_event_cb(m_event)
 {
 	DEB_CONSTRUCTOR();
 
 	m_acq.registerAcqEndCallback(m_acq_end_cb);
+	m_acq.registerEventCallback(m_event_cb);
 
 	HwDetInfoCtrlObj *det_info = &m_det_info;
 	m_cap_list.push_back(HwCap(det_info));
@@ -771,6 +810,9 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 
 	HwShutterCtrlObj *shutter = &m_shutter;
 	m_cap_list.push_back(HwCap(shutter));
+
+	HwEventCtrlObj *event = &m_event;
+	m_cap_list.push_back(HwCap(event));
 
 	reset(SoftReset);
 }
