@@ -24,8 +24,6 @@ import os, sys, imp, glob, DLFCN
 root_name = __path__[0]
 mod_name = os.path.basename(root_name)
 
-from Lima import Espia
-
 def version_code(s):
         return map(int, s.strip('v').split('.'))
 
@@ -33,9 +31,9 @@ def version_cmp(x, y):
         return cmp(version_code(x), version_code(y))
 
 env_var_name = 'LIMA_%s_VERSION' % mod_name.upper()
-try:
+if env_var_name in os.environ:
         version = os.environ[env_var_name]
-except KeyError:
+else:
         version = 'LAST'
 
 req_version = version
@@ -44,6 +42,7 @@ if version.upper() == 'LAST':
         version_dirs = [x for x in os.listdir(root_name) if x.startswith('v')]
         version_dirs.sort(version_cmp)
         version = version_dirs[-1]
+	del version_dirs, x
 else:
         if version[0] != 'v':
                 version = 'v' + version
@@ -51,6 +50,13 @@ else:
 mod_path = os.path.join(root_name, version)
 if not (os.path.isdir(mod_path) or os.path.islink(mod_path)):
         raise ImportError('Invalid %s: %s' % (env_var_name, req_version))
+
+espia_version_fname = os.path.join(mod_path, 'ESPIA_VERSION')
+espia_version_file = open(espia_version_fname, 'rt')
+espia_version = espia_version_file.readline().strip()
+os.environ['LIMA_ESPIA_VERSION'] = espia_version
+
+from Lima import Espia
 
 sys.path.insert(0, mod_path)
 
@@ -67,6 +73,7 @@ from FrelonAcq import FrelonAcq
 
 sys.path.remove(mod_path)
 
-del root_name, mod_name, mod_path, x, env_var_name, ld_open_flags
-del version, req_version, version_dirs, version_code, version_cmp
+del root_name, mod_name, mod_path, env_var_name, ld_open_flags
+del version, req_version, version_code, version_cmp
+del espia_version_fname, espia_version_file, espia_version
 del os, sys, imp, glob, DLFCN
