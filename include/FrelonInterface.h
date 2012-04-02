@@ -364,6 +364,8 @@ class Interface : public HwInterface
 	virtual void getStatus(StatusType& status);
 	virtual int getNbHwAcquiredFrames();
 
+	void resetDefaults();
+
  private:
 	Espia::Acq&    m_acq;
 	BufferCtrlMgr& m_buffer_mgr;

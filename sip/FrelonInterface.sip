@@ -315,6 +315,8 @@ class Interface : HwInterface
 	virtual void getStatus(HwInterface::StatusType& status /Out/);
 	virtual int getNbHwAcquiredFrames();
 
+	void resetDefaults();
+
 	SIP_PYOBJECT getHwCtrlObj(HwCap::Type cap_type);
 %MethodCode
 	HwInterface::CapList cap_list;

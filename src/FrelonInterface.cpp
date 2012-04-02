@@ -815,6 +815,7 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 	m_cap_list.push_back(HwCap(event));
 
 	reset(SoftReset);
+	resetDefaults();
 }
 
 Interface::~Interface()
@@ -838,7 +839,17 @@ void Interface::reset(ResetLevel reset_level)
 	if (reset_level == HardReset) {
 		DEB_TRACE() << "Performing camera hard reset";
 		m_cam.hardReset();
+
+		resetDefaults();
 	}
+}
+
+void Interface::resetDefaults()
+{
+	DEB_MEMBER_FUNCT();
+	DEB_TRACE() << "Setting default configuration";
+
+	stopAcq();
 
 	m_cam.setFrameTransferMode(FFM);
 	InputChan input_chan;

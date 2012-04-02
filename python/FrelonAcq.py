@@ -225,6 +225,13 @@ class FrelonAcq:
         self.m_ct.reset()
 
     @DEB_MEMBER_FUNCT
+    def resetDefaults(self):
+        deb.Trace('Reseting to default settings')
+        self.m_hw_inter.resetDefaults()
+        deb.Trace('Forcing Control Layer to synchronise')
+        self.reset()
+
+    @DEB_MEMBER_FUNCT
     def getCameraModel(self):
         model = self.m_cam.getModel()
         deb.Return('Getting camera model')
