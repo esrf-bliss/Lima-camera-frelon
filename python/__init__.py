@@ -51,10 +51,12 @@ mod_path = os.path.join(root_name, version)
 if not (os.path.isdir(mod_path) or os.path.islink(mod_path)):
         raise ImportError('Invalid %s: %s' % (env_var_name, req_version))
 
-espia_version_fname = os.path.join(mod_path, 'ESPIA_VERSION')
-espia_version_file = open(espia_version_fname, 'rt')
-espia_version = espia_version_file.readline().strip()
-os.environ['LIMA_ESPIA_VERSION'] = espia_version
+if os.environ['LIMA_LINK_STRICT_VERSION'] == 'FULL':
+	espia_version_fname = os.path.join(mod_path, 'ESPIA_VERSION')
+	espia_version_file = open(espia_version_fname, 'rt')
+	espia_version = espia_version_file.readline().strip()
+	os.environ['LIMA_ESPIA_VERSION'] = espia_version
+	del espia_version_fname, espia_version_file, espia_version
 
 from Lima import Espia
 
@@ -75,5 +77,4 @@ sys.path.remove(mod_path)
 
 del root_name, mod_name, mod_path, env_var_name, ld_open_flags
 del version, req_version, version_code, version_cmp
-del espia_version_fname, espia_version_file, espia_version
 del os, sys, imp, glob, DLFCN
