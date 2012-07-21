@@ -330,7 +330,7 @@ string Camera::getInputChanModeName(FrameTransferMode ftm,
 	DEB_STATIC_FUNCT();
 
 	ostringstream os;
-	os << ((ftm == FTM) ? "FTM" : "FFM") << "-";
+	os << FTMNameMap[ftm] << "-";
 	string sep;
 	for (int chan = 1; chan <= 4; chan++) {
 		int chan_bit = 1 << (chan - 1);
@@ -383,7 +383,7 @@ void Camera::calcChanMode(FrameTransferMode ftm, InputChan input_chan,
 			  int& chan_mode)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR2(ftm, DEB_HEX(input_chan));
+	DEB_PARAM() << DEB_VAR2(FTMNameMap[ftm], DEB_HEX(input_chan));
 
 	calcBaseChanMode(ftm, chan_mode);
 	const InputChanList& chan_list = FTMInputChanListMap[ftm];
@@ -419,13 +419,13 @@ void Camera::calcFTMInputChan(int chan_mode, FrameTransferMode& ftm,
 	int base_chan_mode;
 	calcBaseChanMode(ftm, base_chan_mode);
 	input_chan = FTMInputChanListMap[ftm][chan_mode - base_chan_mode];
-	DEB_RETURN() << DEB_VAR2(ftm, DEB_HEX(input_chan));
+	DEB_RETURN() << DEB_VAR2(FTMNameMap[ftm], DEB_HEX(input_chan));
 }
 
-void Camera::getDefInputChan(FrameTransferMode ftm, InputChan& input_chan)
+bool Camera::getDefInputChan(FrameTransferMode ftm, InputChan& input_chan)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(ftm);
+	DEB_PARAM() << DEB_VAR1(FTMNameMap[ftm]);
 
 	int modes_avail = getModesAvail();
 
@@ -445,13 +445,18 @@ void Camera::getDefInputChan(FrameTransferMode ftm, InputChan& input_chan)
 			break;
 	}
 
-	if (!valid_mode) 
-		THROW_HW_ERROR(Error) << "Could not find valid " << ftm 
-				      << "mode: " 
-				      << DEB_VAR1(DEB_HEX(modes_avail));
+	if (!valid_mode) {
+		DEB_WARNING() << "Could not find default input_chan for " 
+			      << FTMNameMap[ftm] << ": " 
+			      << DEB_VAR1(DEB_HEX(modes_avail));
+		DEB_RETURN() << DEB_VAR1(valid_mode);
+	} else {
+		DEB_RETURN() << DEB_VAR2(valid_mode, DEB_HEX(input_chan)) 
+			     << " [" << getInputChanModeName(ftm, input_chan) 
+			     << "]";
+	}
 
-	DEB_RETURN() << DEB_VAR1(DEB_HEX(input_chan)) 
-		     << " [" << getInputChanModeName(ftm, input_chan) << "]";
+	return valid_mode;
 }
 
 void Camera::setInputChan(InputChan input_chan)
@@ -481,7 +486,7 @@ void Camera::getInputChan(InputChan& input_chan)
 void Camera::setFrameTransferMode(FrameTransferMode ftm)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR1(ftm);
+	DEB_PARAM() << DEB_VAR1(FTMNameMap[ftm]);
 	
 	FrameTransferMode prev_ftm;
 	getFrameTransferMode(prev_ftm);
@@ -498,9 +503,11 @@ void Camera::setFrameTransferMode(FrameTransferMode ftm)
 		setChanMode(chan_mode);
 	} catch (...) {
 		DEB_TRACE() << DEB_VAR1(DEB_HEX(input_chan)) 
-			    << " not available in " << DEB_VAR1(ftm);
+			    << " not available in " << FTMNameMap[ftm];
 		DEB_TRACE() << "  Trying default input channel";
-		getDefInputChan(ftm, input_chan);
+		if (!getDefInputChan(ftm, input_chan))
+			THROW_HW_ERROR(Error) << "No input channel found for "
+					      << FTMNameMap[ftm];
 		calcChanMode(ftm, input_chan, chan_mode);
 		setChanMode(chan_mode);
 	}
@@ -526,7 +533,7 @@ void Camera::getFrameTransferMode(FrameTransferMode& ftm)
 		ftm = it->first;
 		const ChanRange& range = it->second;
 		if ((chan_mode >= range.first) && (chan_mode < range.second)) {
-			DEB_RETURN() << DEB_VAR1(ftm);
+			DEB_RETURN() << DEB_VAR1(FTMNameMap[ftm]);
 			return;
 		}
 	}
@@ -551,7 +558,7 @@ void Camera::getFrameDim(FrameDim& frame_dim)
 	getMaxFrameDim(frame_dim);
 	FrameTransferMode ftm;
 	getFrameTransferMode(ftm);
-	if (ftm == FTM)
+	if ((ftm == FTM) && !m_model.isHama())
 		frame_dim /= Point(1, 2);
 
 	DEB_RETURN() << DEB_VAR1(frame_dim);

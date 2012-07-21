@@ -851,9 +851,12 @@ void Interface::resetDefaults()
 
 	stopAcq();
 
-	m_cam.setFrameTransferMode(FFM);
+	FrameTransferMode ftm;
 	InputChan input_chan;
-	m_cam.getDefInputChan(FFM, input_chan);
+	if (!m_cam.getDefInputChan(ftm=FFM, input_chan)	&&
+	    !m_cam.getDefInputChan(ftm=FTM, input_chan))
+		THROW_HW_ERROR(Error) << "Cannot find default input channel!!";
+	m_cam.setFrameTransferMode(ftm);
 	m_cam.setInputChan(input_chan);
 
 	m_flip.setFlip(Flip(false));

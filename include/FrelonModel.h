@@ -125,6 +125,7 @@ class Model
 	bool isSPB2();
 	int  getAdcBits();
 	ChipType getChipType();
+	bool isHama();
 	bool hasTaper();
 	bool hasModesAvail();
 	bool hasTimeCalc();
@@ -146,6 +147,7 @@ class Model
 
 	bool     m_valid;
 	ChipType m_chip_type;
+	bool     m_is_hama;
 	bool     m_modes_avail;
 	bool     m_time_calc;
 	bool     m_htd_cmd;

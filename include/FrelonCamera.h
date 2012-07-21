@@ -53,7 +53,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 
 	TimingCtrl& getTimingCtrl();
 
-	void getDefInputChan(FrameTransferMode ftm, InputChan& input_chan);
+	bool getDefInputChan(FrameTransferMode ftm, InputChan& input_chan);
 	void setInputChan(InputChan  input_chan);
 	void getInputChan(InputChan& input_chan);
 

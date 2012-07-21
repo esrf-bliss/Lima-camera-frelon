@@ -47,7 +47,7 @@ class Camera
 
 	Frelon::TimingCtrl& getTimingCtrl();
 
-	void getDefInputChan(Frelon::FrameTransferMode ftm, 
+	bool getDefInputChan(Frelon::FrameTransferMode ftm, 
 			     Frelon::InputChan& input_chan /Out/);
 	void setInputChan(Frelon::InputChan  input_chan);
 	void getInputChan(Frelon::InputChan& input_chan /Out/);

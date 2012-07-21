@@ -76,6 +76,10 @@ extern MultiLineCmdStrMapType MultiLineCmdStrMap;
 enum FrameTransferMode {
 	FFM = 0, FTM = 1,
 };
+/*
+typedef std::map<FrameTransferMode, std::string> FTMStrMapType;
+extern FTMStrMapType FTMNameMap;
+*/
 
 enum InputChan {
 	Chan1    = 1 /*(1 << 0)*/,

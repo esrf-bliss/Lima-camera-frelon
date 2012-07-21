@@ -201,6 +201,7 @@ void Model::update()
 		m_chip_type = ChipType(getSerialNbParam(SPB2Type) >> 12);
 	else
 		m_chip_type = bool(getSerialNbParam(SPB1Kodak)) ? Kodak : Atmel;
+	m_is_hama = (m_chip_type == Hama);
 
 	bool firm_v2_0c = (is_spb2 && (m_firmware >= Firmware::v2_0c));
 	m_htd_cmd = firm_v2_0c;
@@ -214,8 +215,8 @@ void Model::update()
 	bool firm_v3_1c = (is_spb2 && (m_firmware >= Firmware::v3_1c));
 	m_images_per_eof = firm_v3_1c;
 
-	DEB_TRACE() << DEB_VAR5(m_chip_type, m_modes_avail, m_time_calc, 
-				m_good_htd, m_images_per_eof);
+	DEB_TRACE() << DEB_VAR6(m_chip_type, m_is_hama, m_modes_avail, 
+				m_time_calc, m_good_htd, m_images_per_eof);
 }
 
 bool Model::isValid()
@@ -294,6 +295,16 @@ ChipType Model::getChipType()
 
 	DEB_RETURN() << DEB_VAR1(m_chip_type);
 	return m_chip_type;
+}
+
+bool Model::isHama()
+{
+	DEB_MEMBER_FUNCT();
+
+	checkValid();
+
+	DEB_RETURN() << DEB_VAR1(m_is_hama);
+	return m_is_hama;
 }
 
 bool Model::hasTaper()

@@ -145,6 +145,13 @@ MultiLineCmdStrMapType
 lima::Frelon::MultiLineCmdStrMap(C_LIST_ITERS(MLCmdStrCList));
 
 
+typedef pair<FrameTransferMode, string> FTMStrPair;
+static const FTMStrPair FTMNameCList[] = {
+	FTMStrPair(FFM, "FFM"),
+	FTMStrPair(FTM, "FTM"),
+};
+FTMStrMapType lima::Frelon::FTMNameMap(C_LIST_ITERS(FTMNameCList));
+
 typedef pair<FrameTransferMode, ChanRange> RangePair;
 static const RangePair FTMChanRangeCList[] = {
 	RangePair(FFM, ChanRange(1,  10)),

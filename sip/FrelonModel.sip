@@ -76,6 +76,7 @@ class Model
 	bool isSPB2();
 	int  getAdcBits();
 	int  getChipType();
+	bool isHama();
 	bool hasTaper();
 	bool hasModesAvail();
 	bool hasTimeCalc();
