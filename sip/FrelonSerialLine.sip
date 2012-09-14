@@ -78,7 +78,15 @@ class SerialLine : HwSerialLine
 	virtual void getTimeout(double& timeout /Out/) const;
 
 //	void splitMsg(const std::string& msg, 
-//		      MsgPartStrMapType& msg_parts) const;
+//		      MsgPartStrMapType& msg_parts /Out/) const;
+	void splitMsg(const std::string& msg, 
+		      std::map<int, std::string>& msg_parts /Out/) const;
+%MethodCode
+        Frelon::SerialLine::MsgPartStrMapType m;
+	sipCpp->splitMsg(*a0, m);
+        a1->insert(m.begin(), m.end());
+%End
+
 	void decodeFmtResp(const std::string& ans, std::string& fmt_resp /Out/);
 
 	void sendFmtCmd(const std::string& cmd, std::string& resp /Out/);

@@ -26,6 +26,7 @@ namespace Frelon
 %TypeHeaderCode
 #include "Frelon.h"
 #include "MiscUtils.h"
+namespace lima { namespace Frelon { class Frelon::Global {}; } }
 %End
 
 enum Reg {
@@ -49,7 +50,22 @@ enum Reg {
 /*
 typedef std::map<Reg, std::string> RegStrMapType;
 extern RegStrMapType RegStrMap;
+*/
+class Global
+{
+public:
+	static std::map<int, std::string> RegStrMap();
+%MethodCode
+	typedef std::map<int, std::string> MapType;
+	static MapType *m = NULL;
+	if (!m)
+		m = new MapType(Frelon::RegStrMap.begin(), 
+				Frelon::RegStrMap.end());
+	sipRes = m;
+%End
+};
 
+/*
 typedef std::vector<Reg> RegListType;
 extern RegListType NonCacheableRegList;
 */

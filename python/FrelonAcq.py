@@ -29,7 +29,13 @@ class FrelonAcq:
 
     DEB_CLASS(DebModApplication, 'FrelonAcq')
 
-
+    MonitoredSerialCmds = [Frelon.LatencyTime,
+                           Frelon.ShutEnable, Frelon.ShutCloseTime]
+    MonitoredSerialDict = {}
+    for x in MonitoredSerialCmds:
+        MonitoredSerialDict[Frelon.Global.RegStrMap()[x]] = x
+    del x
+    
     class BinChangedCallback(Frelon.BinChangedCallback):
 
         DEB_CLASS(DebModApplication, "FrelonAcq.BinChangedCallback")
@@ -131,6 +137,8 @@ class FrelonAcq:
         self.m_buffer_mgr    = BufferCtrlMgr(self.m_buffer_cb_mgr)
         self.m_hw_inter      = Frelon.Interface(self.m_acq, self.m_buffer_mgr,
                                                 self.m_cam)
+        self.m_hw_sync       = self.m_hw_inter.getHwCtrlObj(HwCap.Sync)
+        self.m_hw_shut       = self.m_hw_inter.getHwCtrlObj(HwCap.Shutter)
 
         self.m_ct            = CtControl(self.m_hw_inter)
         self.m_ct_acq        = self.m_ct.acquisition()
@@ -138,6 +146,7 @@ class FrelonAcq:
         self.m_ct_image      = self.m_ct.image()
         self.m_ct_buffer     = self.m_ct.buffer()
         self.m_ct_display    = self.m_ct.display()
+        self.m_ct_shut       = self.m_ct.shutter()
 
         self.m_cam_inited    = True
 
@@ -146,10 +155,11 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def __del__(self):
         if self.m_cam_inited:
-            del self.m_ct_display, self.m_ct_buffer, self.m_ct_image, \
-                self.m_ct_saving, self.m_ct_acq
+            del self.m_ct_acq, self.m_ct_saving, self.m_ct_image, \
+                self.m_ct_buffer, self.m_ct_display, self.m_ct_shut
             del self.m_ct;		gc.collect()
 
+            del self.m_hw_sync, self.m_hw_shut
             del self.m_hw_inter;	gc.collect()
             del self.m_buffer_mgr;	gc.collect()
             del self.m_cam;		gc.collect()
@@ -580,11 +590,41 @@ class FrelonAcq:
         ser_line = self.m_cam.getSerialLine()
         ser_line.write(cmd)
         resp = ser_line.readLine()
+        self.checkMonitoredSerialCmd(cmd)
         deb.Return('Received response:')
         for line in resp.split('\r\n'):
             deb.Return(line)
         return resp
-        
+
+    @DEB_MEMBER_FUNCT
+    def checkMonitoredSerialCmd(self, cmd):
+        ser_line = self.m_cam.getSerialLine()
+        msg_part = ser_line.splitMsg(cmd)
+        cstr = msg_part[ser_line.MsgCmd]
+        if cstr not in self.MonitoredSerialDict or msg_part[ser_line.MsgReq]:
+            return
+        reg = self.MonitoredSerialDict[cstr]
+        try:
+            val = int(msg_part[ser_line.MsgVal])
+            vstr = '=%d' % val
+        except:
+            val, vstr = None, ''
+        deb.Trace("Detected monitored serial command: %s%s" % (cstr, vstr))
+        if reg == Frelon.LatencyTime:
+            lat_time = self.m_hw_sync.getLatTime()
+            deb.Trace("Updating LatTime: %.3f ms" % (lat_time * 1e3))
+            self.m_ct_acq.setLatencyTime(lat_time)
+        elif reg == Frelon.ShutCloseTime:
+            shut_time = self.m_hw_shut.getCloseTime()
+            deb.Trace("Updating ShutCloseTime: %.3f ms" % (shut_time * 1e3))
+            self.m_ct_shut.setCloseTime(shut_time)
+        elif reg == Frelon.ShutEnable:
+            shut_mode = self.m_hw_shut.getMode()
+            shut_enable = (((shut_mode == ShutterAutoFrame) and 'AutoFrame')
+                                                            or  'Off')
+            deb.Trace("Updating ShutEnable: %s" % shut_enable)
+            self.m_ct_shut.setMode(shut_mode)
+            
     @DEB_MEMBER_FUNCT
     def readBeamParams(self):
         frame_nb = -1
