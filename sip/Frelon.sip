@@ -60,11 +60,8 @@ public:
 	static std::map<int, std::string> RegStrMap();
 %MethodCode
 	typedef std::map<int, std::string> MapType;
-	static MapType *m = NULL;
-	if (!m)
-		m = new MapType(Frelon::RegStrMap.begin(), 
-				Frelon::RegStrMap.end());
-	sipRes = m;
+	sipRes = new MapType(Frelon::RegStrMap.begin(), 
+			     Frelon::RegStrMap.end());
 %End
 };
 
