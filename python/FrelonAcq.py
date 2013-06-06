@@ -545,7 +545,11 @@ class FrelonAcq:
     @DEB_MEMBER_FUNCT
     def setLiveDisplay(self, livedisplay_act):
         deb.Param('Setting live display active: %s' % livedisplay_act)
-        self.m_ct_display.setNames('_ccd_ds_', 'frelon_live')
+        if livedisplay_act:
+            try:
+                self.m_ct_display.setNames('_ccd_ds_', 'frelon_live')
+            except:
+                pass
         self.m_ct_display.setActive(livedisplay_act)
         
     @DEB_MEMBER_FUNCT
