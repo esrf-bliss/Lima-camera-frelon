@@ -284,6 +284,7 @@ bool SyncCtrlObj::checkTrigMode(TrigMode trig_mode)
 	bool valid_mode;
 	switch (trig_mode) {
 	case IntTrig:
+	case IntTrigMult:
 	case ExtTrigSingle:
 	case ExtTrigMult:
 	case ExtGate:
@@ -893,12 +894,19 @@ void Interface::startAcq()
 {
 	DEB_MEMBER_FUNCT();
 
-	m_buffer_mgr.setStartTimestamp(Timestamp::now());
-	m_acq.start();
+	TrigMode trig_mode;
+	m_cam.getTrigMode(trig_mode);
+	bool acq_start = (trig_mode != IntTrigMult) || !m_cam.isRunning();
+	if (acq_start) {
+		m_buffer_mgr.setStartTimestamp(Timestamp::now());
+		m_acq.start();
+	}
+
 	try {
 		m_cam.start();
 	} catch (...) {
-		m_acq.stop();
+		if (acq_start)
+			m_acq.stop();
 		throw;
 	}
 }
