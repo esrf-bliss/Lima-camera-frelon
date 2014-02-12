@@ -1298,8 +1298,7 @@ void Camera::setNbFrames(int nb_frames)
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
 	bool one_frame = ((trig_mode == IntTrigMult) ||
-			  (trig_mode == ExtTrigMult) ||
-			  (trig_mode == ExtGate));
+			  (trig_mode == ExtTrigMult));
 	int cam_nb_frames = one_frame ? 1 : nb_frames;
 	writeRegister(NbFrames, cam_nb_frames);
 	m_nb_frames = nb_frames;
