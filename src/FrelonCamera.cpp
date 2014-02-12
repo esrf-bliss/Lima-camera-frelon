@@ -1297,7 +1297,9 @@ void Camera::setNbFrames(int nb_frames)
 
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
-	bool one_frame = (trig_mode == ExtTrigMult) || (trig_mode == ExtGate);
+	bool one_frame = ((trig_mode == IntTrigMult) ||
+			  (trig_mode == ExtTrigMult) ||
+			  (trig_mode == ExtGate));
 	int cam_nb_frames = one_frame ? 1 : nb_frames;
 	writeRegister(NbFrames, cam_nb_frames);
 	m_nb_frames = nb_frames;
@@ -1455,12 +1457,12 @@ void Camera::start()
 
 	AutoMutex l = lock();
 
-	if (m_started)
-		THROW_HW_ERROR(InvalidValue) << "Camera already running!";
-
 	TrigMode trig_mode;
 	getTrigMode(trig_mode);
-	if (trig_mode == IntTrig) {
+	if (m_started && (trig_mode != IntTrigMult))
+		THROW_HW_ERROR(InvalidValue) << "Camera already running!";
+
+	if ((trig_mode == IntTrig) || (m_trig_mode == IntTrigMult)) {
 		DEB_TRACE() << "Starting camera by software";
 		sendCmd(Start);
 	} else if (m_model.hasGoodHTD()) {
