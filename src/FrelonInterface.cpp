@@ -896,8 +896,8 @@ void Interface::startAcq()
 
 	TrigMode trig_mode;
 	m_cam.getTrigMode(trig_mode);
-	bool acq_start = (trig_mode != IntTrigMult) || !m_cam.isRunning();
-	if (acq_start) {
+	bool was_running = (trig_mode == IntTrigMult) && m_cam.isRunning();
+	if (!was_running) {
 		m_buffer_mgr.setStartTimestamp(Timestamp::now());
 		m_acq.start();
 	}
@@ -905,7 +905,7 @@ void Interface::startAcq()
 	try {
 		m_cam.start();
 	} catch (...) {
-		if (acq_start)
+		if (!was_running)
 			m_acq.stop();
 		throw;
 	}
@@ -944,6 +944,11 @@ void Interface::getStatus(StatusType& status)
 		status.det |= DetReadout;
 	if (cam & Frelon::Latency)
 		status.det |= DetLatency;
+
+	TrigMode trig_mode;
+	m_cam.getTrigMode(trig_mode);
+	if ((trig_mode == IntTrigMult) && (status.det == DetWaitForTrigger))
+		status.det = DetIdle;
 
 	DEB_RETURN() << DEB_VAR1(status);
 }
