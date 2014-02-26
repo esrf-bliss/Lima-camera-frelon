@@ -20,20 +20,20 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 import sys, os, thread, time, random
-import lima
+from Lima import Core, Espia, Frelon
 
 class FrelonData:
 
     def __init__(self, edev_nr=0):
-        self.edev = lima.Espia.Dev(edev_nr)
-        self.eser_line = lima.Espia.SerialLine(self.edev)
-        self.frelon = lima.Frelon.Camera(self.eser_line)
+        self.edev = Espia.Dev(edev_nr)
+        self.eser_line = Espia.SerialLine(self.edev)
+        self.frelon = Frelon.Camera(self.eser_line)
         self.fser_line = self.frelon.getSerialLine()
 
-        self.finish_cond = lima.Cond()
+        self.finish_cond = Core.Cond()
         self.finish_req = False
 
-        self.log_cond = lima.Cond()
+        self.log_cond = Core.Cond()
         
     def getFrelonCamera(self):
         return self.frelon

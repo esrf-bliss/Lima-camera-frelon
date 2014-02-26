@@ -21,8 +21,8 @@
 ############################################################################
 include ../../../config.inc
 
-SRCS = testfrelon.cpp testfreloninterface.cpp testfrelonspectroscopy.cpp \
-       testfreloncontrol.cpp
+SRCS = test_frelon.cpp test_frelon_interface.cpp test_frelon_spectroscopy.cpp \
+       test_frelon_control.cpp
 
 include ../../common/espia/include/espia.inc
 
@@ -44,25 +44,25 @@ CXXFLAGS = -I../include -I../../common/espia/include \
 	   -I../../../third-party/Sps/Include \
 	   -I$(ESPIA_DRV_INCL) -Wall -pthread -g
 
-test-progs = testfrelon testfreloninterface testfrelonspectroscopy \
-	     testfreloncontrol
+test-progs = test_frelon test_frelon_interface test_frelon_spectroscopy \
+	     test_frelon_control
 
 all: 	$(test-progs)
 
-testfrelon:		testfrelon.o
+test_frelon:		test_frelon.o
 	$(CXX) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
-testfreloninterface:	testfreloninterface.o
+test_frelon_interface:	test_frelon_interface.o
 	$(CXX) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
-testfrelonspectroscopy:	testfrelonspectroscopy.o
+test_frelon_spectroscopy:	test_frelon_spectroscopy.o
 	$(CXX) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
-testfreloncontrol:	testfreloncontrol.o
+test_frelon_control:	test_frelon_control.o
 	$(CXX) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 clean:
-	rm -f *.o *.P testfrelon testfreloninterface testfrelonspectroscopy
+	rm -f *.o *.P test_frelon test_frelon_interface test_frelon_spectroscopy
 
 %.o : %.cpp
 	$(COMPILE.cpp) -MD $(CXXFLAGS) -o $@ $<

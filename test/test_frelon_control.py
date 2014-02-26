@@ -20,19 +20,18 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 import os, sys, string, gc, time
-from lima import *
-from Debug import *
+from Lima import Core, Espia, Frelon
 import processlib
 
-DEB_GLOBAL(DebModTest)
+Core.DEB_GLOBAL(Core.DebModTest)
 
-class ImageStatusCallback(CtControl.ImageStatusCallback):
+class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
 
-    DEB_CLASS(DebModTest, "ImageStatusCallback")
+    Core.DEB_CLASS(Core.DebModTest, "ImageStatusCallback")
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def __init__(self, ct, acq_state, print_time=1):
-        CtControl.ImageStatusCallback.__init__(self)
+        Core.CtControl.ImageStatusCallback.__init__(self)
 
         self.m_ct = ct
         self.m_acq_state = acq_state
@@ -41,7 +40,7 @@ class ImageStatusCallback(CtControl.ImageStatusCallback):
         self.m_last_print_ts = 0
         self.m_print_time = print_time
         
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def imageStatusChanged(self, img_status):
         last_acq_frame_nb = img_status.LastImageAcquired;
         last_saved_frame_nb = img_status.LastImageSaved;
@@ -53,14 +52,14 @@ class ImageStatusCallback(CtControl.ImageStatusCallback):
         acq_state_changed = False
         msg = ''
         if ((last_acq_frame_nb == self.m_nb_frames - 1) and 
-            (self.m_acq_state.get() == AcqState.Acquiring)):
+            (self.m_acq_state.get() == Core.AcqState.Acquiring)):
             msg = 'All frames acquired!'
-            self.m_acq_state.set(AcqState.Saving)
+            self.m_acq_state.set(Core.AcqState.Saving)
             acq_state_changed = True
 
         if last_saved_frame_nb == self.m_nb_frames - 1:
             msg = 'All frames saved!'
-            self.m_acq_state.set(AcqState.Finished)
+            self.m_acq_state.set(Core.AcqState.Finished)
             acq_state_changed = True
             
         now = time.time()
@@ -77,21 +76,21 @@ class ImageStatusCallback(CtControl.ImageStatusCallback):
 
 class FrelonAcq:
 
-    DEB_CLASS(DebModTest, "FrelonAcq")
+    Core.DEB_CLASS(Core.DebModTest, "FrelonAcq")
     
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def __init__(self, espia_dev_nb, use_events=False, print_time=1):
         self.m_edev          = Espia.Dev(espia_dev_nb)
         self.m_acq           = Espia.Acq(self.m_edev)
         self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
         self.m_eserline      = Espia.SerialLine(self.m_edev)
         self.m_cam           = Frelon.Camera(self.m_eserline)
-        self.m_buffer_mgr    = BufferCtrlMgr(self.m_buffer_cb_mgr)
+        self.m_buffer_mgr    = Core.BufferCtrlMgr(self.m_buffer_cb_mgr)
         self.m_hw_inter      = Frelon.Interface(self.m_acq,
                                                      self.m_buffer_mgr,
                                                      self.m_cam)
-        self.m_acq_state     = AcqState()
-        self.m_ct            = CtControl(self.m_hw_inter)
+        self.m_acq_state     = Core.AcqState()
+        self.m_ct            = Core.CtControl(self.m_hw_inter)
         self.m_ct_acq        = self.m_ct.acquisition()
         self.m_ct_saving     = self.m_ct.saving()
         self.m_ct_image      = self.m_ct.image()
@@ -112,7 +111,7 @@ class FrelonAcq:
         self.m_ct_display.setActive(True)
         
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def __del__(self):
         if self.m_use_events:
             del self.m_img_status_cb;	gc.collect()
@@ -128,21 +127,21 @@ class FrelonAcq:
         del self.m_acq;			gc.collect()
         del self.m_edev;		gc.collect()
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def start(self):
         self.m_ct.prepareAcq()
-        self.m_acq_state.set(AcqState.Acquiring)
+        self.m_acq_state.set(Core.AcqState.Acquiring)
         self.m_ct.startAcq()
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def wait(self):
         if self.m_use_events:
-            state_mask = AcqState.Acquiring | AcqState.Saving
+            state_mask = Core.AcqState.Acquiring | Core.AcqState.Saving
             self.m_acq_state.waitNot(state_mask)
         else:
             nb_frames = self.m_ct_acq.getAcqNbFrames()
             last_print_ts = 0
-            running_states = [AcqState.Acquiring, AcqState.Saving]
+            running_states = [Core.AcqState.Acquiring, Core.AcqState.Saving]
             while self.m_acq_state.get() in running_states:
                 img_status = self.m_ct.getImageStatus()
                 last_acq_frame_nb = img_status.LastImageAcquired;
@@ -151,14 +150,14 @@ class FrelonAcq:
                 acq_state_changed = False
                 msg = ''
                 if ((last_acq_frame_nb == nb_frames - 1) and 
-                    (self.m_acq_state.get() == AcqState.Acquiring)):
+                    (self.m_acq_state.get() == Core.AcqState.Acquiring)):
                     msg = 'All frames acquired!'
-                    self.m_acq_state.set(AcqState.Saving)
+                    self.m_acq_state.set(Core.AcqState.Saving)
                     acq_state_changed = True
 
                 if last_saved_frame_nb == nb_frames - 1:
                     msg = 'All frames saved!'
-                    self.m_acq_state.set(AcqState.Finished)
+                    self.m_acq_state.set(Core.AcqState.Finished)
                     acq_state_changed = True
             
                 now = time.time()
@@ -176,12 +175,12 @@ class FrelonAcq:
         pool_thread_mgr = processlib.PoolThreadMgr.get()
         pool_thread_mgr.wait()
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def run(self):
         self.start()
         self.wait()
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def initSaving(self, dir, prefix, suffix, idx, fmt, mode, frames_per_file):
         self.m_ct_saving.setDirectory(dir)
         self.m_ct_saving.setPrefix(prefix)
@@ -191,28 +190,28 @@ class FrelonAcq:
         self.m_ct_saving.setSavingMode(mode)
         self.m_ct_saving.setFramesPerFile(frames_per_file)
         
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def setExpTime(self, exp_time):
         self.m_ct_acq.setAcqExpoTime(exp_time)
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def setNbAcqFrames(self, nb_acq_frames):
         self.m_ct_acq.setAcqNbFrames(nb_acq_frames)
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def setBin(self, bin):
         self.m_ct_image.setBin(bin)
 
-    @DEB_MEMBER_FUNCT
+    @Core.DEB_MEMBER_FUNCT
     def setRoi(self, roi):
         self.m_ct_image.setRoi(roi)
 
 
-@DEB_GLOBAL_FUNCT
+@Core.DEB_GLOBAL_FUNCT
 def test_frelon_control(enable_debug):
 
     if not enable_debug:
-        DebParams.disableModuleFlags(DebParams.AllFlags)
+        Core.DebParams.disableModuleFlags(Core.DebParams.AllFlags)
 
     deb.Always("Creating FrelonAcq")
     espia_dev_nb = 0
@@ -220,8 +219,8 @@ def test_frelon_control(enable_debug):
     acq = FrelonAcq(espia_dev_nb, use_events)
     deb.Always("Done!")
     
-    acq.initSaving("data", "img", ".edf", 0, CtSaving.EDF, 
-                   CtSaving.AutoFrame, 1);
+    acq.initSaving("data", "img", ".edf", 0, Core.CtSaving.EDF, 
+                   Core.CtSaving.AutoFrame, 1);
 
     deb.Always("First run with default pars")
     acq.run()
@@ -237,7 +236,7 @@ def test_frelon_control(enable_debug):
     acq.run()
     deb.Always("Done!")
     
-    bin = Bin(2, 2)
+    bin = Core.Bin(2, 2)
     acq.setBin(bin)
 
     nb_acq_frames = 5
@@ -248,7 +247,7 @@ def test_frelon_control(enable_debug):
     acq.run()
     deb.Always("Done!")
     
-    roi = Roi(Point(256, 256), Size(512, 512));
+    roi = Core.Roi(Core.Point(256, 256), Core.Size(512, 512));
     acq.setRoi(roi);
 
     roi_tl, roi_size = roi.getTopLeft(), roi.getSize()
@@ -258,7 +257,7 @@ def test_frelon_control(enable_debug):
     acq.run()
     deb.Always("Done!")
     
-    roi = Roi(Point(267, 267), Size(501, 501));
+    roi = Core.Roi(Core.Point(267, 267), Core.Size(501, 501));
     acq.setRoi(roi);
 
     roi_tl, roi_size = roi.getTopLeft(), roi.getSize()
