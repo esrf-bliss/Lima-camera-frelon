@@ -2,3 +2,7 @@ test_frelon
 test_frelon_control
 test_frelon_interface
 test_frelon_spectroscopy
+testfrelon
+testfreloncontrol
+testfreloninterface
+testfrelonspectroscopy

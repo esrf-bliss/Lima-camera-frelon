@@ -46,6 +46,8 @@ CXXFLAGS = -I../include -I../../common/espia/include \
 
 test-progs = test_frelon test_frelon_interface test_frelon_spectroscopy \
 	     test_frelon_control
+old-progs  = testfrelon testfreloninterface testfrelonspectroscopy \
+	     testfreloncontrol
 
 all: 	$(test-progs)
 
@@ -62,7 +64,7 @@ test_frelon_control:	test_frelon_control.o
 	$(CXX) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 clean:
-	rm -f *.o *.P test_frelon test_frelon_interface test_frelon_spectroscopy
+	rm -f *.o *.P $(test-progs) $(old-progs)
 
 %.o : %.cpp
 	$(COMPILE.cpp) -MD $(CXXFLAGS) -o $@ $<
