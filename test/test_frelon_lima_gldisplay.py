@@ -6,12 +6,15 @@ from Lima import Core, GLDisplay, Frelon
 acq = Frelon.FrelonAcq(0)
 ct_control = acq.getGlobalControl()
 
-def frelon_cleanup():
-	global acq
-	del acq
+class FrelonCleanup(GLDisplay.GLForkCallback):
+	def execInForked(self):
+		global acq
+		del acq
+		
+frelon_cleanup = FrelonCleanup()
 
 gldisplay = GLDisplay.CtSPSGLDisplay(ct_control, [])
-gldisplay.setForkCleanup(frelon_cleanup)
+gldisplay.addForkCallback(frelon_cleanup)
 gldisplay.setSpecArray('GLDisplayTest', 'Frelon')
 gldisplay.createWindow()
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
