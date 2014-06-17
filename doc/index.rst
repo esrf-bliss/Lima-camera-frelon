@@ -1,5 +1,7 @@
-Frelon
-----------
+.. _camera-frelon:
+
+Frelon camera plugin
+---------------------
 
 .. image:: FReLoN-2k.jpg
 
