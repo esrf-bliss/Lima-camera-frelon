@@ -301,8 +301,9 @@ class Interface : HwInterface
 %End
 
  public:
-	Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr, 
-		  Frelon::Camera& cam);
+	Interface(Espia::Acq& acq /KeepReference/,
+	          BufferCtrlMgr& buffer_mgr /KeepReference/, 
+		  Frelon::Camera& cam /KeepReference/);
 	virtual ~Interface();
 
 //	virtual const HwInterface::CapList& getCapList() const;
