@@ -126,6 +126,7 @@ static const CmdPair CmdStrCList[] = {
 	CmdPair(Stop,		"O"),
 	CmdPair(Save,		"SAV"),
 	CmdPair(Reload,		"RLD"),
+	CmdPair(SendEOF,	"SEF"),
 };
 CmdStrMapType lima::Frelon::CmdStrMap(C_LIST_ITERS(CmdStrCList));
 

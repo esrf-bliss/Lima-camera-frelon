@@ -65,6 +65,7 @@ extern const int MaxRegVal;
 
 enum Cmd {
 	Reset,		Start,		Stop,		Save,		Reload,
+	SendEOF,
 };
 
 typedef std::map<Cmd, std::string> CmdStrMapType;
