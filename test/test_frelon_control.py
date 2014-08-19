@@ -20,6 +20,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 import os, sys, string, gc, time
+import getopt
 from Lima import Core, Espia, Frelon
 import processlib
 
@@ -30,7 +31,7 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
     Core.DEB_CLASS(Core.DebModTest, "ImageStatusCallback")
 
     @Core.DEB_MEMBER_FUNCT
-    def __init__(self, ct, acq_state, print_time=1):
+    def __init__(self, ct, acq_state, print_time=1, sleep_time=0):
         Core.CtControl.ImageStatusCallback.__init__(self)
 
         self.m_ct = ct
@@ -39,6 +40,7 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
         
         self.m_last_print_ts = 0
         self.m_print_time = print_time
+        self.m_sleep_time = sleep_time
         
     @Core.DEB_MEMBER_FUNCT
     def imageStatusChanged(self, img_status):
@@ -73,13 +75,16 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
         if msg:
             deb.Always(msg)
 
+        if self.m_sleep_time > 0:
+            time.sleep(self.m_sleep_time)
 
 class FrelonAcq:
 
     Core.DEB_CLASS(Core.DebModTest, "FrelonAcq")
     
     @Core.DEB_MEMBER_FUNCT
-    def __init__(self, espia_dev_nb, use_events=False, print_time=1):
+    def __init__(self, espia_dev_nb, use_events=False, print_time=1,
+                 sleep_time=0):
         self.m_edev          = Espia.Dev(espia_dev_nb)
         self.m_acq           = Espia.Acq(self.m_edev)
         self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
@@ -99,13 +104,13 @@ class FrelonAcq:
 
         self.m_use_events    = use_events
         self.m_print_time    = print_time
+        self.m_sleep_time    = sleep_time
         
         if self.m_use_events:
-            cb = ImageStatusCallback(self.m_ct, self.m_acq_state, print_time)
+            cb = ImageStatusCallback(self.m_ct, self.m_acq_state, print_time,
+                                     sleep_time)
             self.m_img_status_cb = cb
             self.m_ct.registerImageStatusCallback(self.m_img_status_cb)
-        else:
-            self.m_poll_time = 0.1
 
         self.m_ct_display.setNames('_ccd_ds_', 'frelon_live')
         self.m_ct_display.setActive(True)
@@ -170,7 +175,7 @@ class FrelonAcq:
                 if msg:
                     print msg
 
-                time.sleep(self.m_poll_time)
+                time.sleep(self.m_sleep_time)
 
         pool_thread_mgr = processlib.PoolThreadMgr.get()
         pool_thread_mgr.wait()
@@ -208,15 +213,17 @@ class FrelonAcq:
 
 
 @Core.DEB_GLOBAL_FUNCT
-def test_frelon_control(enable_debug):
+def test_frelon_control(enable_debug, use_events, print_time, sleep_time):
 
-    if not enable_debug:
+    if enable_debug:
+        Core.DebParams.enableModuleFlags(Core.DebParams.AllFlags)
+        Core.DebParams.enableTypeFlags(Core.DebParams.AllFlags)
+    else:
         Core.DebParams.disableModuleFlags(Core.DebParams.AllFlags)
 
     deb.Always("Creating FrelonAcq")
     espia_dev_nb = 0
-    use_events = False
-    acq = FrelonAcq(espia_dev_nb, use_events)
+    acq = FrelonAcq(espia_dev_nb, use_events, print_time, sleep_time)
     deb.Always("Done!")
     
     acq.initSaving("data", "img", ".edf", 0, Core.CtSaving.EDF, 
@@ -271,10 +278,22 @@ def test_frelon_control(enable_debug):
 def main(argv):
 
     enable_debug = False
-    if len(argv) > 1:
-        enable_debug = (argv[1] == 'debug')
+    use_events = False
+    print_time = 1
+    sleep_time = 0
 
-    test_frelon_control(enable_debug)
+    opts, args = getopt.getopt(argv[1:], 'dep:s:')
+    for opt, val in opts:
+        if opt == '-d':
+            enable_debug = True
+        if opt == '-e':
+            use_events = True
+        if opt == '-p':
+            print_time = float(val)
+        if opt == '-s':
+            sleep_time = float(val)
+
+    test_frelon_control(enable_debug, use_events, print_time, sleep_time)
         
         
     
