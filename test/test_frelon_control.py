@@ -45,6 +45,8 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
     @Core.DEB_MEMBER_FUNCT
     def imageStatusChanged(self, img_status):
         last_acq_frame_nb = img_status.LastImageAcquired;
+        last_base_frame_nb = img_status.LastBaseImageReady;
+        last_ready_frame_nb = img_status.LastImageReady;
         last_saved_frame_nb = img_status.LastImageSaved;
 
         if last_acq_frame_nb == 0:
@@ -56,6 +58,14 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
         if ((last_acq_frame_nb == self.m_nb_frames - 1) and 
             (self.m_acq_state.get() == Core.AcqState.Acquiring)):
             msg = 'All frames acquired!'
+
+        if ((last_base_frame_nb == self.m_nb_frames - 1) and
+            (self.m_acq_state.get() == Core.AcqState.Acquiring)):
+            msg = 'All frames internally processed!'
+
+        if ((last_ready_frame_nb == self.m_nb_frames - 1) and
+            (self.m_acq_state.get() == Core.AcqState.Acquiring)):
+            msg = 'All frames processed!'
             self.m_acq_state.set(Core.AcqState.Saving)
             acq_state_changed = True
 
@@ -67,8 +77,10 @@ class ImageStatusCallback(Core.CtControl.ImageStatusCallback):
         now = time.time()
         if ((now - self.m_last_print_ts >= self.m_print_time) or
             acq_state_changed):
-            deb.Always("Last Acquired: %8d, Last Saved: %8d" % 
-                       (last_acq_frame_nb, last_saved_frame_nb))
+            deb.Always("Last Acquired: %8d, Last Base: %8d, " \
+                       "Last Ready: %8d, Last Saved: %8d" %
+                       (last_acq_frame_nb, last_base_frame_nb,
+                        last_ready_frame_nb, last_saved_frame_nb))
                       
             self.m_last_print_ts = now
 
