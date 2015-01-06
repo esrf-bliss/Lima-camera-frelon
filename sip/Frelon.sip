@@ -25,7 +25,7 @@ namespace Frelon
 
 %TypeHeaderCode
 #include "Frelon.h"
-#include "MiscUtils.h"
+#include "lima/MiscUtils.h"
 #ifndef LIMA_SIP_FRELON_GLOBAL_DEFINED
 #define LIMA_SIP_FRELON_GLOBAL_DEFINED
 namespace lima { namespace Frelon { class Global {}; } }

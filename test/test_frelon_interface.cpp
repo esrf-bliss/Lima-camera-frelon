@@ -20,16 +20,16 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 #include "FrelonInterface.h"
-#include "PoolThreadMgr.h"
-#include "HwBufferSave.h"
-#include "Data.h"
-#include "TaskMgr.h"
-#include "TaskEventCallback.h"
-#include "SoftRoi.h"
+#include "processlib/PoolThreadMgr.h"
+#include "lima/HwBufferSave.h"
+#include "processlib/Data.h"
+#include "processlib/TaskMgr.h"
+#include "processlib/TaskEventCallback.h"
+#include "processlib/SoftRoi.h"
 #ifdef WITH_SPS_IMAGE
-#include "CtSpsImage.h"
+#include "lima/CtSpsImage.h"
 #endif
-#include "AcqState.h"
+#include "lima/AcqState.h"
 
 #include <iostream>
 

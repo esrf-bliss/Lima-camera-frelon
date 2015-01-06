@@ -20,12 +20,12 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 #include "FrelonInterface.h"
-#include "CtControl.h"
-#include "CtAcquisition.h"
-#include "CtImage.h"
-#include "CtSaving.h"
-#include "CtSpsImage.h"
-#include "AcqState.h"
+#include "lima/CtControl.h"
+#include "lima/CtAcquisition.h"
+#include "lima/CtImage.h"
+#include "lima/CtSaving.h"
+#include "lima/CtSpsImage.h"
+#include "lima/AcqState.h"
 
 using namespace lima;
 using namespace std;

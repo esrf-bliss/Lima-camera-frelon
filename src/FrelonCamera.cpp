@@ -20,7 +20,7 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 #include "FrelonCamera.h"
-#include "MiscUtils.h"
+#include "lima/MiscUtils.h"
 #include <sstream>
 
 using namespace lima;

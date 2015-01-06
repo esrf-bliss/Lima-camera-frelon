@@ -22,8 +22,8 @@
 #ifndef FRELONCORRECTION_H
 #define FRELONCORRECTION_H
 
-#include "LinkTask.h"
-#include "SizeUtils.h"
+#include "processlib/LinkTask.h"
+#include "lima/SizeUtils.h"
 
 namespace lima
 {

@@ -20,9 +20,9 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 #include "FrelonInterface.h"
-#include "HwBufferSave.h"
-#include "AcqState.h"
-#include "PoolThreadMgr.h"
+#include "lima/HwBufferSave.h"
+#include "lima/AcqState.h"
+#include "processlib/PoolThreadMgr.h"
 
 using namespace lima;
 using namespace std;

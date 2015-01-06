@@ -22,7 +22,7 @@
 #ifndef FRELONINTERFACE_H
 #define FRELONINTERFACE_H
 
-#include "HwInterface.h"
+#include "lima/HwInterface.h"
 #include "EspiaBufferMgr.h"
 #include "FrelonCamera.h"
 

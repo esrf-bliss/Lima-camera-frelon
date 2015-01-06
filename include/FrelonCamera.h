@@ -25,7 +25,7 @@
 #include "FrelonSerialLine.h"
 #include "FrelonModel.h"
 #include "FrelonTimingCtrl.h"
-#include "HwMaxImageSizeCallback.h"
+#include "lima/HwMaxImageSizeCallback.h"
 
 namespace lima
 {

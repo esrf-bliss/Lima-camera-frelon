@@ -23,7 +23,7 @@
 #define FRELONSERIALLINE_H
 
 #include "Frelon.h"
-#include "ThreadUtils.h"
+#include "lima/ThreadUtils.h"
 
 namespace lima
 {
