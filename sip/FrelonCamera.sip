@@ -39,6 +39,7 @@ class Camera
 
 	void writeRegister(Frelon::Reg reg, int  val);
 	void readRegister (Frelon::Reg reg, int& val /Out/);
+	void readFloatRegister(Frelon::Reg reg, double& val /Out/);
 
 	void hardReset();
 	void getVersionStr(std::string& ver /Out/);
@@ -93,8 +94,13 @@ class Camera
 	void setShutCloseTime(double  shut_time);
 	void getShutCloseTime(double& shut_time /Out/);
 
-	void setLatTime(double  lat_time);
-	void getLatTime(double& lat_time /Out/);
+	void setUserLatTime(double  lat_time);
+	void getUserLatTime(double& lat_time /Out/);
+	void getReadoutTime(double& readout_time /Out/);
+	void getTransferTime(double& xfer_time /Out/);
+	void getDeadTime(double& dead_time /Out/);
+	void setTotalLatTime(double  lat_time);
+	void getTotalLatTime(double& lat_time /Out/);
 
 	void setNbFrames(int  nb_frames);
 	void getNbFrames(int& nb_frames /Out/);

@@ -109,6 +109,11 @@ static Reg CacheableRegCList[] = {
 RegListType 
 lima::Frelon::CacheableRegList(C_LIST_ITERS(CacheableRegCList));
 
+static Reg FloatRegCList[] = {
+	ReadoutTime,
+};
+RegListType lima::Frelon::FloatRegList(C_LIST_ITERS(FloatRegCList));
+
 typedef pair<Reg, double> RegSleepPair;
 static const RegSleepPair RegSleepCList[] = {
 	RegSleepPair(ConfigHD,    2.0),

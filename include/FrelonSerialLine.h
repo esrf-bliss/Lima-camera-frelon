@@ -37,7 +37,7 @@ class SerialLine : public HwSerialLine
 
  public:
 	enum MsgPart {
-		MsgSync, MsgCmd, MsgVal, MsgReq, MsgTerm, 
+		MsgSync, MsgCmd, MsgVal, MsgDec, MsgReq, MsgTerm, 
 	};
 	
 	enum AnsPart {
@@ -90,6 +90,7 @@ class SerialLine : public HwSerialLine
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
+	void readFloatRegister(Reg reg, double& val);
 
 	int getLastWarning();
 
@@ -129,12 +130,21 @@ class SerialLine : public HwSerialLine
 
 	void readRespCleanup();
 
+	bool isFloatReg(Reg reg);
+	template <class T>
+	void checkRegType(Reg reg);
+
 	bool isRegCacheable(Reg reg);
-	bool getRegCacheVal(Reg reg, int& val);
-	bool getRegCacheValSafe(Reg reg, int& val);
+	template <class T>
+	bool getRegCacheVal(Reg reg, T& val);
+	template <class T>
+	bool getRegCacheValSafe(Reg reg, T& val);
 
 	double getRegSleepTime(Reg reg);
- 
+
+	template <class T>
+	void readCameraRegister(Reg reg, T& val);
+
 	Espia::SerialLine& m_espia_ser_line;
 	Cond m_cond;
 	int m_last_warn;
@@ -147,6 +157,16 @@ class SerialLine : public HwSerialLine
 	std::string m_curr_resp;
 	std::string m_curr_fmt_resp;
 };
+
+inline void SerialLine::readRegister(Reg reg, int& val)
+{
+	readCameraRegister(reg, val);
+}
+
+inline void SerialLine::readFloatRegister(Reg reg, double& val)
+{
+	readCameraRegister(reg, val);
+}
 
 std::ostream& operator <<(std::ostream& os, SerialLine::RegOp op);
 

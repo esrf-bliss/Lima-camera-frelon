@@ -116,11 +116,18 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 		m_curr_op = is_req ? ReadReg : WriteReg;
 		if (!is_req)
 			m_curr_resp = msg_parts[MsgVal];
-		int cache_val;
-		m_curr_cache = getRegCacheVal(m_curr_reg, cache_val);
+		int cache_int;
+		double cache_float;
+		if (isFloatReg(m_curr_reg))
+			m_curr_cache = getRegCacheVal(m_curr_reg, cache_float);
+		else
+			m_curr_cache = getRegCacheVal(m_curr_reg, cache_int);
 		if (m_curr_cache) {
 			ostringstream os;
-			os << cache_val;
+			if (isFloatReg(m_curr_reg))
+				os << cache_float;
+			else
+				os << cache_int;
 			const string& cache_str = os.str();
 			if (is_req)
 				m_curr_resp = cache_str;
@@ -277,9 +284,37 @@ bool SerialLine::isRegCacheable(Reg reg)
 	return cacheable;
 }
 
-bool SerialLine::getRegCacheVal(Reg reg, int& val)
+
+bool SerialLine::isFloatReg(Reg reg)
+{
+	const RegListType& list = FloatRegList;
+	return (find(list.begin(), list.end(), reg) != list.end());
+}
+
+namespace lima
+{
+namespace Frelon
+{
+
+template <>
+void SerialLine::checkRegType<int>(Reg reg)
 {
 	DEB_MEMBER_FUNCT();
+	if (isFloatReg(reg))
+		THROW_HW_ERROR(InvalidValue) << "Invalid int-call for a "
+						"float-register";
+}
+
+template <>
+void SerialLine::checkRegType<double>(Reg reg)
+{
+}
+
+template <class T>
+bool SerialLine::getRegCacheVal(Reg reg, T& val)
+{
+	DEB_MEMBER_FUNCT();
+	checkRegType<T>(reg);
 	RegValMapType::const_iterator it = m_reg_cache.find(reg);
 	bool in_cache = (it != m_reg_cache.end());
 	val = in_cache ? it->second : 0;
@@ -287,11 +322,43 @@ bool SerialLine::getRegCacheVal(Reg reg, int& val)
 	return in_cache;
 }
 
-bool SerialLine::getRegCacheValSafe(Reg reg, int& val)
+template <class T>
+bool SerialLine::getRegCacheValSafe(Reg reg, T& val)
 {
 	AutoMutex l = lock(AutoMutex::Locked);
 	return (isRegCacheable(reg) && getRegCacheVal(reg, val));
 }
+
+template <class T>
+void SerialLine::readCameraRegister(Reg reg, T& val)
+{
+	DEB_MEMBER_FUNCT();
+	const string& reg_str = RegStrMap[reg];
+	DEB_PARAM() << DEB_VAR2(reg, reg_str);
+
+	bool in_cache = getRegCacheValSafe(reg, val);
+	if (in_cache) {
+		DEB_TRACE() << "Using cache value";
+		DEB_RETURN() << DEB_VAR1(val);
+		return;
+	} 
+
+	if (reg_str.empty())
+		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(reg);
+
+	string resp;
+	sendFmtCmd(reg_str + "?", resp);
+	istringstream is(resp);
+	is >> val;
+	DEB_RETURN() << DEB_VAR1(val);
+}
+
+template void SerialLine::readCameraRegister<int>(Reg reg, int& val);
+template void SerialLine::readCameraRegister<double>(Reg reg, double& val);
+
+
+} // namespace Frelon
+} // namespace lima
 
 double SerialLine::getRegSleepTime(Reg reg)
 {
@@ -341,7 +408,8 @@ void SerialLine::splitMsg(const string& msg,
 
 	const static RegEx re("^(?P<sync>>)?"
 			      "(?P<cmd>[A-Za-z]+)"
-			      "((?P<req>\\?)|(?P<val>[0-9]+))?"
+			      "((?P<req>\\?)|"
+			      "(?P<val>[0-9]+(\\.(?P<dec>[0-9]+))?))?"
 			      "(?P<term>[\r\n]+)?$");
 
 	RegEx::FullNameMatchType match;
@@ -352,8 +420,8 @@ void SerialLine::splitMsg(const string& msg,
 	typedef pair<MsgPart, string> KeyPair;
 	static const KeyPair key_list[] = {
 		KeyPair(MsgSync, "sync"), KeyPair(MsgCmd, "cmd"), 
-		KeyPair(MsgVal,  "val"),  KeyPair(MsgReq, "req"),  
-		KeyPair(MsgTerm, "term"),
+		KeyPair(MsgVal,  "val"),  KeyPair(MsgDec, "dec"),  
+		KeyPair(MsgReq,  "req"),  KeyPair(MsgTerm, "term"),
 	};
 	const KeyPair *it, *end = C_LIST_END(key_list);
 	for (it = key_list; it != end; ++it) {
@@ -363,7 +431,8 @@ void SerialLine::splitMsg(const string& msg,
 	}
 
 	DEB_RETURN() << DEB_VAR2(msg_parts[MsgSync], msg_parts[MsgCmd]);
-	DEB_RETURN() << DEB_VAR2(msg_parts[MsgReq], msg_parts[MsgVal]);
+	DEB_RETURN() << DEB_VAR3(msg_parts[MsgReq], msg_parts[MsgVal],
+				 msg_parts[MsgDec]);
 }
 
 void SerialLine::decodeFmtResp(const string& ans, string& fmt_resp)
@@ -473,30 +542,6 @@ void SerialLine::writeRegister(Reg reg, int  val)
 	string resp;
 	sendFmtCmd(cmd.str(), resp);
 }
-
-void SerialLine::readRegister(Reg reg, int& val)
-{
-	DEB_MEMBER_FUNCT();
-	const string& reg_str = RegStrMap[reg];
-	DEB_PARAM() << DEB_VAR2(reg, reg_str);
-
-	bool in_cache = getRegCacheValSafe(reg, val);
-	if (in_cache) {
-		DEB_TRACE() << "Using cache value";
-		DEB_RETURN() << DEB_VAR1(val);
-		return;
-	} 
-
-	if (reg_str.empty())
-		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(reg);
-
-	string resp;
-	sendFmtCmd(reg_str + "?", resp);
-	istringstream is(resp);
-	is >> val;
-	DEB_RETURN() << DEB_VAR1(val);
-}
-
 
 ostream& lima::Frelon::operator <<(ostream& os, SerialLine::RegOp op)
 {

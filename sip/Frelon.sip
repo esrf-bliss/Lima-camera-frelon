@@ -67,13 +67,18 @@ public:
 
 /*
 typedef std::vector<Reg> RegListType;
-extern RegListType NonCacheableRegList;
+extern RegListType CacheableRegList;
+extern RegListType FloatRegList;
+
+typedef std::map<Reg, double> RegDoubleMapType;
+extern RegDoubleMapType RegSleepMap;
 */
 
 const int MaxRegVal;
 
 enum Cmd {
 	Reset,		Start,		Stop,		Save,		Reload,
+	SendEOF,
 };
 /*
 typedef std::map<Cmd, std::string> CmdStrMapType;

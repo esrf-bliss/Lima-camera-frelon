@@ -57,6 +57,7 @@ extern RegStrMapType RegStrMap;
 
 typedef std::vector<Reg> RegListType;
 extern RegListType CacheableRegList;
+extern RegListType FloatRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;
