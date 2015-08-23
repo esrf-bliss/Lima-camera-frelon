@@ -273,6 +273,12 @@ void Camera::readRegister(Reg reg, int& val)
 	m_ser_line.readRegister(reg, val);
 }
 
+void Camera::readFloatRegister(Reg reg, double& val)
+{
+	DEB_MEMBER_FUNCT();
+	m_ser_line.readFloatRegister(reg, val);
+}
+
 void Camera::hardReset()
 {
 	DEB_MEMBER_FUNCT();
@@ -1269,7 +1275,7 @@ void Camera::getShutCloseTime(double& shut_time)
 	DEB_RETURN() << DEB_VAR1(shut_time);
 }
 
-void Camera::setLatTime(double lat_time)
+void Camera::setUserLatTime(double lat_time)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(lat_time);
@@ -1279,7 +1285,7 @@ void Camera::setLatTime(double lat_time)
 	writeRegister(LatencyTime, lat_val);
 }
 
-void Camera::getLatTime(double& lat_time)
+void Camera::getUserLatTime(double& lat_time)
 {
 	DEB_MEMBER_FUNCT();
 	TimeUnitFactor time_unit_factor;
@@ -1287,6 +1293,65 @@ void Camera::getLatTime(double& lat_time)
 	int lat_val;
 	readRegister(LatencyTime, lat_val);
 	lat_time = lat_val * TimeUnitFactorMap[time_unit_factor];
+	DEB_RETURN() << DEB_VAR1(lat_time);
+}
+
+void Camera::getReadoutTime(double& readout_time)
+{
+	DEB_MEMBER_FUNCT();
+	if (!m_model.hasTimeCalc())
+		THROW_HW_ERROR(NotSupported) << "Camera does not have "
+					     << "readout time calculation";
+
+	readFloatRegister(ReadoutTime, readout_time);
+	readout_time *= 1e-6;
+	DEB_RETURN() << DEB_VAR1(readout_time);
+}
+
+void Camera::getTransferTime(double& xfer_time)
+{
+	DEB_MEMBER_FUNCT();
+	if (!m_model.hasTimeCalc())
+		THROW_HW_ERROR(NotSupported) << "Camera does not have "
+					     << "shift time calculation";
+
+	readFloatRegister(TransferTime, xfer_time);
+	xfer_time *= 1e-6;
+	DEB_RETURN() << DEB_VAR1(xfer_time);
+}
+
+void Camera::getDeadTime(double& dead_time)
+{
+	DEB_MEMBER_FUNCT();
+	getTransferTime(dead_time);
+	if (dead_time == 0)
+		getReadoutTime(dead_time);
+	DEB_RETURN() << DEB_VAR1(dead_time);
+}
+
+void Camera::setTotalLatTime(double lat_time)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(lat_time);
+	double dead_time;
+	getDeadTime(dead_time);
+	double user_lat_time = lat_time - dead_time;
+	if (user_lat_time < -1e-6)
+		THROW_HW_ERROR(InvalidValue) << "Total latency time cannot be "
+					     << "smaller than dead time";
+	else if (user_lat_time < 0)
+		user_lat_time = 0;
+	setUserLatTime(user_lat_time);
+}
+
+void Camera::getTotalLatTime(double& lat_time)
+{
+	DEB_MEMBER_FUNCT();
+	double user_lat_time;
+	getUserLatTime(user_lat_time);
+	double dead_time;
+	getDeadTime(dead_time);
+	lat_time = dead_time + user_lat_time;
 	DEB_RETURN() << DEB_VAR1(lat_time);
 }
 

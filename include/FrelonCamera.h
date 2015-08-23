@@ -45,6 +45,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
+	void readFloatRegister(Reg reg, double& val);
 
 	void hardReset();
 	void getVersionStr(std::string& ver);
@@ -98,8 +99,13 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setShutCloseTime(double  shut_time);
 	void getShutCloseTime(double& shut_time);
 
-	void setLatTime(double  lat_time);
-	void getLatTime(double& lat_time);
+	void setUserLatTime(double  lat_time);
+	void getUserLatTime(double& lat_time);
+	void getReadoutTime(double& readout_time);
+	void getTransferTime(double& xfer_time);
+	void getDeadTime(double& dead_time);
+	void setTotalLatTime(double  lat_time);
+	void getTotalLatTime(double& lat_time);
 
 	void setNbFrames(int  nb_frames);
 	void getNbFrames(int& nb_frames);

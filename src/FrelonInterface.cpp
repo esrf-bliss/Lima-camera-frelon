@@ -330,13 +330,13 @@ void SyncCtrlObj::getExpTime(double& exp_time)
 void SyncCtrlObj::setLatTime(double lat_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_cam.setLatTime(lat_time);
+	m_cam.setTotalLatTime(lat_time);
 }
 
 void SyncCtrlObj::getLatTime(double& lat_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_cam.getLatTime(lat_time);
+	m_cam.getTotalLatTime(lat_time);
 }
 
 void SyncCtrlObj::setNbHwFrames(int nb_frames)
@@ -372,8 +372,10 @@ void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 	valid_ranges.min_exp_time = 1 * MinTimeUnit;
 	valid_ranges.max_exp_time = MaxRegVal * MaxTimeUnit;
 
-	valid_ranges.min_lat_time = 0 * LatTimeUnit;
-	valid_ranges.max_lat_time = MaxRegVal * LatTimeUnit;
+	double dead_time;
+	m_cam.getDeadTime(dead_time);
+	valid_ranges.min_lat_time = dead_time;
+	valid_ranges.max_lat_time = dead_time + MaxRegVal * LatTimeUnit;
 
 	DEB_RETURN() << DEB_VAR2(valid_ranges.min_exp_time, 
 				 valid_ranges.max_exp_time);
@@ -864,8 +866,8 @@ void Interface::resetDefaults()
 
 	m_sync.setNbFrames(1);
 	m_sync.setExpTime(1.0);
-	m_sync.setLatTime(0.0);
 	m_sync.setTrigMode(IntTrig);
+	m_cam.setUserLatTime(0.0);
 
 	m_shutter.setMode(ShutterAutoFrame);
 	m_shutter.setCloseTime(0.0);

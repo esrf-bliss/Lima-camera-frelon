@@ -32,7 +32,7 @@ class SerialLine : HwSerialLine
 
  public:
 	enum MsgPart {
-		MsgSync, MsgCmd, MsgVal, MsgReq, MsgTerm, 
+		MsgSync, MsgCmd, MsgVal, MsgDec, MsgReq, MsgTerm, 
 	};
 	
 	enum AnsPart {
@@ -93,6 +93,7 @@ class SerialLine : HwSerialLine
 
 	void writeRegister(Frelon::Reg reg, int  val);
 	void readRegister (Frelon::Reg reg, int& val /Out/);
+	void readFloatRegister(Frelon::Reg reg, double& val /Out/);
 
 	int getLastWarning();
 
