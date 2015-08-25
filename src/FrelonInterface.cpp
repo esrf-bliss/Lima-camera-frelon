@@ -265,15 +265,36 @@ void BufferCtrlObj::unregisterFrameCallback(HwFrameCallback& frame_cb)
  * \brief SyncCtrlObj constructor
  *******************************************************************/
 
-SyncCtrlObj::SyncCtrlObj(Acq& acq, Camera& cam)
-	: HwSyncCtrlObj(), m_acq(acq), m_cam(cam)
+SyncCtrlObj::DeadTimeChangedCallback::DeadTimeChangedCallback(SyncCtrlObj *sync)
+	: m_sync(sync)
 {
 	DEB_CONSTRUCTOR();
+}
+
+void SyncCtrlObj::DeadTimeChangedCallback::deadTimeChanged(double dead_time)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(dead_time);
+
+	if (!m_sync)
+		return;
+
+	ValidRangesType valid_ranges;
+	m_sync->getValidRanges(valid_ranges);
+	m_sync->validRangesChanged(valid_ranges);
+}
+	
+SyncCtrlObj::SyncCtrlObj(Acq& acq, Camera& cam)
+	: HwSyncCtrlObj(), m_acq(acq), m_cam(cam), m_dead_time_cb(this)
+{
+	DEB_CONSTRUCTOR();
+	m_cam.registerDeadTimeChangedCallback(m_dead_time_cb);
 }
 
 SyncCtrlObj::~SyncCtrlObj()
 {
 	DEB_DESTRUCTOR();
+	m_dead_time_cb.m_sync = NULL;
 }
 
 bool SyncCtrlObj::checkTrigMode(TrigMode trig_mode)

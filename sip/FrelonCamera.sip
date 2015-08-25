@@ -32,6 +32,15 @@ class Camera
 %End
 
  public:
+	class DeadTimeChangedCallback {
+	public:
+		DeadTimeChangedCallback();
+		virtual ~DeadTimeChangedCallback();
+
+	protected:
+		virtual void deadTimeChanged(double dead_time) = 0;
+	};
+
 	Camera(Espia::SerialLine& espia_ser_line);
 	~Camera();
 
@@ -124,6 +133,9 @@ class Camera
 	void start();
 	void stop();
 	bool isRunning();
+
+	void registerDeadTimeChangedCallback(Frelon::Camera::DeadTimeChangedCallback& cb);
+	void unregisterDeadTimeChangedCallback(Frelon::Camera::DeadTimeChangedCallback& cb);
 
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);

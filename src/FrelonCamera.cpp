@@ -32,10 +32,24 @@ const double Camera::UpdateCcdStatusTime = 0.1;
 const double Camera::MaxIdleWaitTime = 2.5;
 const double Camera::MaxBusyRetryTime = 0.2;	// 16 Mpixel image Aurora Xfer
 
+Camera::DeadTimeChangedCallback::DeadTimeChangedCallback()
+	: m_cam(NULL)
+{
+	DEB_CONSTRUCTOR();
+}
+
+Camera::DeadTimeChangedCallback::~DeadTimeChangedCallback()
+{
+	DEB_DESTRUCTOR();
+
+	if (m_cam)
+		m_cam->unregisterDeadTimeChangedCallback(*this);
+}
+
 
 Camera::Camera(Espia::SerialLine& espia_ser_line)
 	: m_ser_line(espia_ser_line), m_timing_ctrl(m_model, m_ser_line),
-	  m_mis_cb_act(false)
+	  m_mis_cb_act(false), m_dead_time(0), m_dead_time_cb(NULL)
 {
 	DEB_CONSTRUCTOR();
 
@@ -45,6 +59,9 @@ Camera::Camera(Espia::SerialLine& espia_ser_line)
 Camera::~Camera()
 {
 	DEB_DESTRUCTOR();
+
+	if (m_dead_time_cb)
+		unregisterDeadTimeChangedCallback(*m_dead_time_cb);
 }
 
 void Camera::sync()
@@ -120,6 +137,7 @@ void Camera::syncRegs()
 	Sleep(UpdateCcdStatusTime);
 
 	getRoiBinOffset(m_roi_bin_offset);
+	deadTimeChanged();
 }
 
 void Camera::syncRegsGoodHTD()
@@ -369,6 +387,7 @@ void Camera::setChanMode(int chan_mode)
 			<< "not supported in " << m_model.getName();
 	}
 	writeRegister(ChanMode, chan_mode);
+	deadTimeChanged();
 }
 
 void Camera::getChanMode(int& chan_mode)
@@ -648,6 +667,8 @@ void Camera::setBin(const Bin& bin)
 	writeRegister(BinVert, bin.getY());
 
 	resetRoiBinOffset();
+
+	deadTimeChanged();
 }
 
 void Camera::getBin(Bin& bin)
@@ -676,6 +697,8 @@ void Camera::setRoiMode(RoiMode roi_mode)
 
 	if (roi_mode == None)
 		resetRoiBinOffset();
+
+	deadTimeChanged();
 }
 
 void Camera::getRoiMode(RoiMode& roi_mode)
@@ -1007,6 +1030,8 @@ void Camera::writeChanRoi(const Roi& chan_roi)
 	writeRegister(RoiPixelWidth, size.getWidth());
 	writeRegister(RoiLineBegin,  tl.y);
 	writeRegister(RoiLineWidth,  size.getHeight());
+
+	deadTimeChanged();
 }
 
 void Camera::readChanRoi(Roi& chan_roi)
@@ -1135,6 +1160,8 @@ void Camera::resetRoiBinOffset()
 		DEB_TRACE() << "Forcing alignment " << DEB_VAR2(bin_y, 
 								roi_line_beg);
 		writeRegister(RoiLineBegin, roi_line_beg);
+
+		deadTimeChanged();
 	}
 }
 
@@ -1165,6 +1192,7 @@ void Camera::setTimeUnitFactor(TimeUnitFactor time_unit_factor)
 	DEB_PARAM() << DEB_VAR1(time_unit_factor);
 	int time_unit = int(time_unit_factor);
 	writeRegister(TimeUnit, time_unit);
+	deadTimeChanged();
 }
 
 void Camera::getTimeUnitFactor(TimeUnitFactor& time_unit_factor)
@@ -1335,12 +1363,7 @@ void Camera::setTotalLatTime(double lat_time)
 	DEB_PARAM() << DEB_VAR1(lat_time);
 	double dead_time;
 	getDeadTime(dead_time);
-	double user_lat_time = lat_time - dead_time;
-	if (user_lat_time < -1e-6)
-		THROW_HW_ERROR(InvalidValue) << "Total latency time cannot be "
-					     << "smaller than dead time";
-	else if (user_lat_time < 0)
-		user_lat_time = 0;
+	double user_lat_time = max(0.0, lat_time - dead_time);
 	setUserLatTime(user_lat_time);
 }
 
@@ -1385,6 +1408,7 @@ void Camera::setSPB2Config(SPB2Config spb2_config)
 	DEB_PARAM() << DEB_VAR1(spb2_config) 
 		    << " [" << getSPB2ConfigName(spb2_config) << "]";
 	writeRegister(ConfigHD, int(spb2_config));
+	deadTimeChanged();
 }
 
 void Camera::getSPB2Config(SPB2Config& spb2_config)
@@ -1618,4 +1642,41 @@ double Camera::getMaxIdleWaitTime()
 
 	DEB_RETURN() << DEB_VAR1(max_wait_time);
 	return max_wait_time;
+}
+
+void Camera::registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb)
+{
+	DEB_MEMBER_FUNCT();
+
+	if (m_dead_time_cb)
+		THROW_HW_ERROR(InvalidValue) << "a cb is already registered";
+
+	cb.m_cam = this;
+	m_dead_time_cb = &cb;
+}
+
+void Camera::unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb)
+{
+	DEB_MEMBER_FUNCT();
+
+	if (&cb != m_dead_time_cb)
+		THROW_HW_ERROR(InvalidValue) << "the cb is not registered";
+
+	m_dead_time_cb = NULL;
+	cb.m_cam = NULL;
+}
+
+void Camera::deadTimeChanged()
+{
+	DEB_MEMBER_FUNCT();
+
+	double dead_time;
+	getDeadTime(dead_time);
+	DEB_TRACE() << DEB_VAR2(dead_time, m_dead_time);
+	if (dead_time == m_dead_time) 
+		return;
+
+	m_dead_time = dead_time;
+	if (m_dead_time_cb)
+		m_dead_time_cb->deadTimeChanged(dead_time);
 }
