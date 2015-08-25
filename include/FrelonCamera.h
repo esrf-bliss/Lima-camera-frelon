@@ -38,6 +38,21 @@ class Camera : public HwMaxImageSizeCallbackGen
 	DEB_CLASS_NAMESPC(DebModCamera, "Camera", "Frelon");
 
  public:
+	class DeadTimeChangedCallback {
+		DEB_CLASS_NAMESPC(DebModCamera, "DeadTimeChangedCallback", 
+				  "Frelon::Camera");
+	public:
+		DeadTimeChangedCallback();
+		virtual ~DeadTimeChangedCallback();
+
+	protected:
+		virtual void deadTimeChanged(double dead_time) = 0;
+
+	private:
+		friend class Camera;
+		Camera *m_cam;
+	};
+
 	Camera(Espia::SerialLine& espia_ser_line);
 	~Camera();
 
@@ -129,6 +144,9 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void stop();
 	bool isRunning();
 
+	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
+	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
+
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
 
@@ -193,6 +211,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	bool waitIdleStatus(Status& status, bool use_ser_line=false,
 			    bool read_spb2=false);
 
+	void deadTimeChanged();
+
 	AutoMutex lock();
 
 	SerialLine m_ser_line;
@@ -205,6 +225,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	bool m_mis_cb_act;
 	Mutex m_lock;
 	bool m_started;
+	double m_dead_time;
+	DeadTimeChangedCallback *m_dead_time_cb;
 };
 
 inline bool Camera::isChanActive(InputChan curr, InputChan chan)

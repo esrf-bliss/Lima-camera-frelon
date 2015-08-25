@@ -177,8 +177,22 @@ class SyncCtrlObj : public HwSyncCtrlObj
 	virtual void getValidRanges(ValidRangesType& valid_ranges);
 
  private:
+	class DeadTimeChangedCallback : public Camera::DeadTimeChangedCallback
+	{
+		DEB_CLASS_NAMESPC(DebModCamera, "DeadTimeChangedCallback", 
+				  "Frelon::SynCtrlObj");
+	public:
+		DeadTimeChangedCallback(SyncCtrlObj *sync);
+	protected:
+		virtual void deadTimeChanged(double dead_time);
+	private:
+		friend class SyncCtrlObj;
+		SyncCtrlObj *m_sync;
+	};
+
 	Espia::Acq& m_acq;
 	Camera& m_cam;
+	DeadTimeChangedCallback m_dead_time_cb;
 };
 
 
