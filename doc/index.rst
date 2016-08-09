@@ -1,7 +1,7 @@
 .. _camera-frelon:
 
-Frelon camera plugin
----------------------
+Frelon camera
+--------------
 
 .. image:: FReLoN-2k.jpg
 
@@ -101,12 +101,15 @@ In addition to the standard capabilities, we make the choice to implement some o
 have an improved simulation.
 
 * HwShutter
+
  TODO 
 
 * HwRoi
+
  TODO 
 
 * HwBin 
+
  TODO 
 
 Configuration
@@ -126,7 +129,7 @@ For a quick test one can use python, is this a short code example:
 .. code-block:: python
 
   from Lima import Frelon
-  from lima impor Core
+  from lima import Core
   import time
 
   FrelonAcq  = Frelon.FrelonAcq(int(espia_dev_nb))
@@ -159,7 +162,7 @@ For a quick test one can use python, is this a short code example:
     time.sleep(1)
     lastimg = control.getStatus().ImageCounters.LastImageReady
  
-  # read a image
+  # read the first image
   im0 = control.ReadImage(0)
   
 
