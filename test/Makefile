@@ -19,30 +19,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
-include ../../../config.inc
+LIMA_DIR := $(shell pwd)/../../..
+LIMA_ESPIA_DIR := $(LIMA_DIR)/camera/common/espia
+
+include $(LIMA_DIR)/config.inc
+include $(LIMA_DIR)/control/control.inc
+include $(LIMA_ESPIA_DIR)/include/espia.inc
 
 SRCS = test_frelon.cpp test_frelon_interface.cpp test_frelon_spectroscopy.cpp \
        test_frelon_control.cpp
 
-include ../../common/espia/include/espia.inc
-
-LDFLAGS = -pthread -L../../../build -L$(ESPIA_DRV_LIB) \
-	  -L../../../third-party/Processlib/build 
-LDLIBS = -llimafrelon -llimaespia -llimacore -lespia -lprocesslib 
+LDFLAGS = -pthread -L$(LIMA_DIR)/build -L$(ESPIA_DRV_LIB)
+LDLIBS = -llimafrelon -llimaespia -llimacore -lespia
 
 ifneq ($(COMPILE_CBF_SAVING), 0)
-LDFLAGS += -L../../../third-party/CBFLib/lib
+LDFLAGS += -L$(LIMA_DIR)/third-party/CBFLib/lib
 LDLIBS += -lcbf
 endif
 
-CXXFLAGS = -I../include -I../../common/espia/include \
-	   -I../../../hardware/include -I../../../common/include \
-           -I../../../control/include/ \
-           -I../../../control/software_operation/include/ \
-	   -I../../../third-party/Processlib/core/include \
-	   -I../../../third-party/Processlib/tasks/include \
-	   -I../../../third-party/Sps/Include \
-	   -I$(ESPIA_DRV_INCL) -Wall -pthread -g
+ifneq ($(COMPILE_CONFIG), 0)
+LDFLAGS += -L$(LIMA_DIR)/third-party/libconfig/lib/.libs
+LDLIBS += -lconfig++
+endif
+
+CXXFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CXXFLAGS) \
+	   -I$(ESPIA_DRV_INCL)
 
 test-progs = test_frelon test_frelon_interface test_frelon_spectroscopy \
 	     test_frelon_control

@@ -19,18 +19,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
+LIMA_DIR := $(shell pwd)/../../..
+LIMA_ESPIA_DIR := $(LIMA_DIR)/camera/common/espia
 
-include ../../common/espia/include/espia.inc
+include $(LIMA_DIR)/config.inc
+include $(LIMA_DIR)/control/control.inc
+include $(LIMA_ESPIA_DIR)/include/espia.inc
 
 frelon-objs = FrelonBase.o FrelonSerialLine.o FrelonModel.o FrelonCamera.o \
 	      FrelonTimingCtrl.o FrelonInterface.o FrelonCorrection.o
 
 SRCS = $(frelon-objs:.o=.cpp) 
 
-CXXFLAGS = -I../include -I../../common/espia/include \
-	   -I../../../hardware/include -I../../../common/include \
-	   -I../../../third-party/Processlib/core/include \
-	   -I$(ESPIA_DRV_INCL) -Wall -pthread -fPIC -g
+CXXFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CXXFLAGS) \
+	   -I$(ESPIA_DRV_INCL)
 
 all:	Frelon.o
 
