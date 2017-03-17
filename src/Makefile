@@ -31,8 +31,10 @@ frelon-objs = FrelonBase.o FrelonSerialLine.o FrelonModel.o FrelonCamera.o \
 
 SRCS = $(frelon-objs:.o=.cpp) 
 
-CXXFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CXXFLAGS) \
+CPPFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CPPFLAGS) \
 	   -I$(ESPIA_DRV_INCL)
+CXXFLAGS = $(CT_CXXFLAGS)
+
 
 all:	Frelon.o
 
@@ -40,13 +42,13 @@ Frelon.o:	$(frelon-objs)
 	$(LD) -o $@ -r $+
 
 FrelonBase.o:	Frelon.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) -c $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm -f *.o *.P
 
 %.o : %.cpp
-	$(COMPILE.cpp) -MD $(CXXFLAGS) -o $@ $<
+	$(COMPILE.cpp) $(CPPFLAGS) -MD $(CXXFLAGS) -o $@ $<
 	@cp $*.d $*.P; \
 	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
@@ -56,4 +58,4 @@ clean:
 
 .PHONY: check-syntax
 check-syntax:
-	$(CXX) -Wall -Wextra -fsyntax-only $(CXXFLAGS) $(CHK_SOURCES)
+	$(CXX) $(CPPFLAGS) -Wextra -fsyntax-only $(CXXFLAGS) $(CHK_SOURCES)

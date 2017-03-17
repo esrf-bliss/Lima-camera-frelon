@@ -29,21 +29,15 @@ include $(LIMA_ESPIA_DIR)/include/espia.inc
 SRCS = test_frelon.cpp test_frelon_interface.cpp test_frelon_spectroscopy.cpp \
        test_frelon_control.cpp
 
-LDFLAGS = -pthread -L$(LIMA_DIR)/build -L$(ESPIA_DRV_LIB)
-LDLIBS = -llimafrelon -llimaespia -llimacore -lespia
-
-ifneq ($(COMPILE_CBF_SAVING), 0)
-LDFLAGS += -L$(LIMA_DIR)/third-party/CBFLib/lib
-LDLIBS += -lcbf
-endif
-
-ifneq ($(COMPILE_CONFIG), 0)
-LDFLAGS += -L$(LIMA_DIR)/third-party/libconfig/lib/.libs
-LDLIBS += -lconfig++
-endif
-
-CXXFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CXXFLAGS) \
+CPPFLAGS = -I../include -I$(LIMA_ESPIA_DIR)/include $(CT_CPPFLAGS) \
 	   -I$(ESPIA_DRV_INCL)
+CXXFLAGS = $(CT_CXXFLAGS)
+DEPLIBS = $(CT_DEPLIBS) \
+	  $(LIMA_DIR)/build,limacore \
+	  $(LIMA_DIR)/build,limaespia \
+	  $(LIMA_DIR)/build,limafrelon
+LDFLAGS = $(CT_LDFLAGS) $(call lib-depflags,$(DEPLIBS)) -L$(ESPIA_DRV_LIB)
+LDLIBS = $(CT_LDLIBS) $(call lib-deplibs,$(DEPLIBS)) -lespia
 
 test-progs = test_frelon test_frelon_interface test_frelon_spectroscopy \
 	     test_frelon_control
@@ -68,7 +62,7 @@ clean:
 	rm -f *.o *.P $(test-progs) $(old-progs)
 
 %.o : %.cpp
-	$(COMPILE.cpp) -MD $(CXXFLAGS) -o $@ $<
+	$(COMPILE.cpp) $(CPPFLAGS) -MD $(CXXFLAGS) -o $@ $<
 	@cp $*.d $*.P; \
 	sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
