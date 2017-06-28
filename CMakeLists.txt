@@ -21,36 +21,34 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
+set(NAME "frelon")
 
-set(frelon_srcs src/Frelon.cpp  src/FrelonSerialLine.cpp
+set(${NAME}_srcs src/Frelon.cpp  src/FrelonSerialLine.cpp
     src/FrelonModel.cpp src/FrelonCamera.cpp
     src/FrelonTimingCtrl.cpp src/FrelonInterface.cpp src/FrelonCorrection.cpp)
 
-file(STRINGS "VERSION" frelon_vers)
-add_library(limafrelon SHARED ${frelon_srcs})
+add_library(lima${NAME} SHARED ${${NAME}_srcs})
 
-target_include_directories(limafrelon PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories(limafrelon PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tools/src")
+target_include_directories(lima${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(lima${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tools/src")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../common/espia/cmake ${CMAKE_MODULE_PATH})
 include(FindEspiaDrv)
 
 #set paths for espia driver and limaespialib and include files
-target_include_directories(limafrelon PUBLIC "${ESPIA_DRV_INCLUDE_DIR}")
-target_include_directories(limafrelon PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../common/espia/include")
+target_include_directories(lima${NAME} PUBLIC "${ESPIA_DRV_INCLUDE_DIR}")
+target_include_directories(lima${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../common/espia/include")
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../common/espia")
 
-target_link_libraries(limafrelon limacore)
-target_link_libraries(limafrelon ${ESPIA_DRV_LIB})
-target_link_libraries(limafrelon limaespia)
+target_link_libraries(lima${NAME} limacore)
+target_link_libraries(lima${NAME} ${ESPIA_DRV_LIB})
+target_link_libraries(lima${NAME} limaespia)
 
-set_target_properties(limafrelon PROPERTIES VERSION ${frelon_vers} SOVERSION "1")
+include(CameraVERSION)
+install(TARGETS lima${NAME} LIBRARY DESTINATION lib)
 
-install(TARGETS limafrelon LIBRARY DESTINATION lib)
-
-if(COMPILE_SIP)
-    set(NAME "frelon")
+if(LIMA_ENABLE_PYTHON)
     set(IMPORTS
 "%Import limaespia.sip")
     set(SIP_INCLUDES ${SIP_INCLUDES}
@@ -61,7 +59,7 @@ if(COMPILE_SIP)
     install(FILES python/FrelonAcq.py DESTINATION "${PYTHON_SITE_PACKAGES_DIR}/Lima/Frelon")
 endif()
 
-if(COMPILE_TEST)
+if(LIMA_ENABLE_TEST)
 	add_subdirectory(test/)
 endif()
                                
