@@ -59,7 +59,7 @@ if(LIMA_ENABLE_PYTHON)
     install(FILES python/FrelonAcq.py DESTINATION "${PYTHON_SITE_PACKAGES_DIR}/Lima/Frelon")
 endif()
 
-if(LIMA_ENABLE_TEST)
+if(LIMA_ENABLE_TESTS)
 	add_subdirectory(test/)
 endif()
                                
