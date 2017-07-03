@@ -45,7 +45,7 @@ target_link_libraries(lima${NAME} limacore)
 target_link_libraries(lima${NAME} ${ESPIA_DRV_LIB})
 target_link_libraries(lima${NAME} limaespia)
 
-include(CameraVERSION)
+limatools_set_library_soversion(lima${NAME} "VERSION")
 install(TARGETS lima${NAME} LIBRARY DESTINATION lib)
 
 if(LIMA_ENABLE_PYTHON)
@@ -54,7 +54,7 @@ if(LIMA_ENABLE_PYTHON)
     set(SIP_INCLUDES ${SIP_INCLUDES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../common/espia/sip"
 	"${CMAKE_BINARY_DIR}/camera/common/espia/sip")
-    include(CameraRunSIP)    
+    limatools_run_sip_for_camera(${NAME})    
     install(FILES python/__init__.py DESTINATION "${PYTHON_SITE_PACKAGES_DIR}/Lima/Frelon")
     install(FILES python/FrelonAcq.py DESTINATION "${PYTHON_SITE_PACKAGES_DIR}/Lima/Frelon")
 endif()
