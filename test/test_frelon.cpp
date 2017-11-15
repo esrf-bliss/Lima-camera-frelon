@@ -23,6 +23,7 @@
 #include "EspiaBufferMgr.h"
 
 #include <iostream>
+#include <stdlib.h>
 
 using namespace lima;
 using namespace std;
@@ -242,7 +243,7 @@ void test_frelon(int espia_nb, bool do_reset)
 	DEB_TRACE() << "MaxNbBuffers " << max_nb_buffers;
 	int nb_concat_frames = 1;
 	buffer_mgr.setNbConcatFrames(nb_concat_frames);
-	int nb_buffers = max_nb_buffers;
+	int nb_buffers = max_nb_buffers * 3 / 4;
 	buffer_mgr.setNbBuffers(nb_buffers);
 
 	buffer_mgr.getFrameDim(frame_dim);

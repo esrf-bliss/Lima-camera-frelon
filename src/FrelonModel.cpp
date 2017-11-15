@@ -22,6 +22,8 @@
 #include "FrelonModel.h"
 #include "lima/RegExUtils.h"
 
+#include <stdlib.h>
+
 using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
