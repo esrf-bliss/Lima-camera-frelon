@@ -19,24 +19,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
-from Lima import module_helper
-
-mod_path = __path__
-depends_on = 'Espia'
-has_dependent = False
-
-cleanup_data = module_helper.load_prepare(mod_path, depends_on, has_dependent)
-
 from Lima import Espia
+from limafrelon import Frelon as _F
 
-cleanup_data = module_helper.load_dep_cleanup(cleanup_data)
-
-from Lima.Frelon.limafrelon import *
-globals().update(Frelon.__dict__)
+globals().update(_F.__dict__)
 from Lima.Frelon.FrelonAcq import FrelonAcq
-
-module_helper.load_cleanup(cleanup_data)
-
-del mod_path, depends_on, has_dependent, cleanup_data
-del module_helper
-
