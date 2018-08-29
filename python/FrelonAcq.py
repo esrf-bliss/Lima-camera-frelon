@@ -35,25 +35,25 @@ class FrelonAcq:
     for x in MonitoredSerialCmds:
         MonitoredSerialDict[Frelon.Global.RegStrMap()[x]] = x
     del x
-    
+
     class BinChangedCallback(Frelon.BinChangedCallback):
 
         DEB_CLASS(DebModApplication, "FrelonAcq.BinChangedCallback")
-        
+
         @DEB_MEMBER_FUNCT
         def __init__(self, e2v_corr_update):
             self.m_e2v_corr_update = weakref.ref(e2v_corr_update)
             Frelon.BinChangedCallback.__init__(self)
-            
+
         @DEB_MEMBER_FUNCT
         def hwBinChanged(self, hw_bin):
             e2v_corr_update = self.m_e2v_corr_update()
             if e2v_corr_update:
                 e2v_corr_update.hwBinChanged(hw_bin);
 
-            
+
     class RoiChangedCallback(Frelon.RoiChangedCallback):
-        
+
         DEB_CLASS(DebModApplication, 'FrelonAcq.RoiChangedCallback')
 
         @DEB_MEMBER_FUNCT
@@ -80,7 +80,7 @@ class FrelonAcq:
             self.m_det_info_ctrl_obj = hw_inter.getHwCtrlObj(HwCap.DetInfo)
             self.m_bin_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Bin)
             self.m_roi_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Roi)
-            
+
             self.m_hw_bin = Bin()
             self.m_bin_cb = FrelonAcq.BinChangedCallback(self)
             self.m_roi_cb = FrelonAcq.RoiChangedCallback(self)
@@ -99,13 +99,13 @@ class FrelonAcq:
                 self.m_bin_ctrl_obj.unregisterBinChangedCallback(self.m_bin_cb)
                 self.m_roi_ctrl_obj.unregisterRoiChangedCallback(self.m_roi_cb)
                 self.m_reg_act = False
-            
+
         @DEB_MEMBER_FUNCT
         def hwBinChanged(self, hw_bin):
             deb.Param('hw_bin=%s' % hw_bin)
             self.m_hw_bin = hw_bin
             self.m_e2v_corr.setHwBin(hw_bin);
-            
+
         @DEB_MEMBER_FUNCT
         def hwRoiChanged(self, hw_roi):
             deb.Param('hw_roi=%s' % hw_roi)
@@ -117,7 +117,7 @@ class FrelonAcq:
                 deb.Trace('hw_roi=%s' % hw_roi)
             self.m_e2v_corr.setHwRoi(hw_roi);
 
-            
+
     @DEB_MEMBER_FUNCT
     def __init__(self, espia_dev_nb):
         self.m_cam_inited    = False
@@ -125,10 +125,10 @@ class FrelonAcq:
         self.m_e2v_corr      = None
         self.m_e2v_corr_update = None
         self.m_e2v_corr_act  = True
-        
+
         self.m_bpm_mgr       = Tasks.BpmManager()
         self.m_bpm_task      = Tasks.BpmTask(self.m_bpm_mgr)
-        
+
         self.m_edev          = Espia.Dev(espia_dev_nb)
         self.m_acq           = Espia.Acq(self.m_edev)
         self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
@@ -151,7 +151,7 @@ class FrelonAcq:
         self.m_cam_inited    = True
 
         self.checkE2VCorrection()
-        
+
     @DEB_MEMBER_FUNCT
     def __del__(self):
         if self.m_cam_inited:
@@ -163,7 +163,7 @@ class FrelonAcq:
             del self.m_hw_inter;	gc.collect()
             del self.m_buffer_mgr;	gc.collect()
             del self.m_cam;		gc.collect()
-            
+
         del self.m_eserline;		gc.collect()
         del self.m_buffer_cb_mgr;	gc.collect()
         del self.m_acq;			gc.collect()
@@ -172,16 +172,16 @@ class FrelonAcq:
         if self.m_e2v_corr:
             del self.m_e2v_corr_update
             del self.m_e2v_corr;	gc.collect()
-            
+
         del self.m_bpm_task;		gc.collect()
         del self.m_bpm_mgr;		gc.collect()
-        
+
     def getEspiaDev(self):
         return self.m_edev
 
     def getEspiaAcq(self):
         return self.m_acq
-    
+
     def getEspiaBufferMgr(self):
         return self.m_buffer_cb_mgr
 
@@ -213,8 +213,8 @@ class FrelonAcq:
 
         ct_status = self.m_ct.getStatus()
         if ct_status.AcquisitionStatus == AcqRunning:
-            raise Exception, 'Acquisition is running'
-        
+            raise Exception('Acquisition is running')
+
         if corr_act:
             deb.Trace('Enabling E2V correction')
             self.m_e2v_corr = Frelon.E2VCorrection()
@@ -228,7 +228,7 @@ class FrelonAcq:
             self.m_e2v_corr_update.setRegistrationActive(False)
             self.m_e2v_corr_update = None
             self.m_e2v_corr = None
-        
+
     @DEB_MEMBER_FUNCT
     def reset(self):
         deb.Trace('Reseting the device!')
@@ -261,18 +261,18 @@ class FrelonAcq:
         ct_status = self.m_ct.getStatus()
         deb.Return('Getting global status: %s' % ct_status)
         return ct_status
-        
+
     @DEB_MEMBER_FUNCT
     def resetStatus(self):
         deb.Trace('Reseting global status')
         self.m_ct.resetStatus(True)
-        
+
     @DEB_MEMBER_FUNCT
     def getCcdStatus(self):
         ccd_status = self.m_cam.getStatus()
         deb.Return('Getting CCD status: 0x%02X' % ccd_status)
         return ccd_status
-    
+
     @DEB_MEMBER_FUNCT
     def getFrameDim(self, max_dim=False):
         if max_dim:
@@ -287,7 +287,7 @@ class FrelonAcq:
     def setAcqMode(self, acq_mode):
         deb.Param('Setting acq. mode: %s' % acq_mode)
         self.m_ct_acq.setAcqMode(acq_mode)
-        
+
     @DEB_MEMBER_FUNCT
     def getAcqMode(self):
         acq_mode = self.m_ct_acq.getAcqMode()
@@ -298,13 +298,13 @@ class FrelonAcq:
     def setFlip(self, flip):
         deb.Param('Setting flip mode: %s' % flip)
         self.m_ct_image.setFlip(flip)
-    
+
     @DEB_MEMBER_FUNCT
     def getFlip(self):
         flip = self.m_ct_image.getFlip()
         deb.Return('Getting flip mode: %s' % flip)
         return flip
-    
+
     @DEB_MEMBER_FUNCT
     def setBin(self, bin):
         deb.Param('Setting binning: %s' % bin)
@@ -323,7 +323,7 @@ class FrelonAcq:
         max_roi = Roi(Point(0, 0), max_roi_size)
         deb.Return('Max roi: %s' % max_roi)
         return max_roi
-        
+
     @DEB_MEMBER_FUNCT
     def setRoi(self, roi):
         deb.Param('Setting roi: %s' % roi)
@@ -343,7 +343,7 @@ class FrelonAcq:
     def setRoiMode(self, roi_mode):
         deb.Param('Setting roi mode: %s' % roi_mode)
         self.m_cam.setRoiMode(roi_mode)
-        
+
     @DEB_MEMBER_FUNCT
     def getRoiMode(self):
         roi_mode = self.m_cam.getRoiMode()
@@ -374,7 +374,7 @@ class FrelonAcq:
         roi.setTopLeft(tl_aligned)
         roi = roi.getBinned(bin)
         self.m_ct_image.setRoi(roi)
-        
+
         roi_bin_offset  = tl
         roi_bin_offset -= tl_aligned
 
@@ -395,13 +395,13 @@ class FrelonAcq:
     def setFrameTransferMode(self, ftm):
         deb.Param('Setting frame transfer mode: ftm=%s' % ftm)
         self.m_cam.setFrameTransferMode(ftm)
-    
+
     @DEB_MEMBER_FUNCT
     def getFrameTransferMode(self):
         ftm = self.m_cam.getFrameTransferMode()
         deb.Return('Getting frame transfer mode: ftm=%s' % ftm)
         return ftm
-    
+
     @DEB_MEMBER_FUNCT
     def setInputChan(self, input_chan):
         input_chan = Frelon.InputChan(input_chan)
@@ -409,7 +409,7 @@ class FrelonAcq:
         mode_name = self.m_cam.getInputChanModeName(ftm, input_chan)
         deb.Param('Setting input channel: %s [%s]' % (input_chan, mode_name))
         self.m_cam.setInputChan(input_chan)
-    
+
     @DEB_MEMBER_FUNCT
     def getInputChan(self):
         input_chan = self.m_cam.getInputChan()
@@ -417,7 +417,7 @@ class FrelonAcq:
         mode_name = self.m_cam.getInputChanModeName(ftm, input_chan)
         deb.Return('Getting input channel: %s [%s]' % (input_chan, mode_name))
         return input_chan
-        
+
     @DEB_MEMBER_FUNCT
     def setTriggerMode(self, trig_mode):
         deb.Param('Setting trigger mode: %s' % trig_mode)
@@ -426,18 +426,18 @@ class FrelonAcq:
         self.m_ct_acq.setTriggerMode(trig_mode)
         if set_exp_time:
             self.m_ct_acq.setAcqExpoTime(1.0)
-    
+
     @DEB_MEMBER_FUNCT
     def getTriggerMode(self):
         trig_mode = self.m_ct_acq.getTriggerMode()
         deb.Return('Getting trigger mode: %s' % trig_mode)
         return trig_mode
-    
+
     @DEB_MEMBER_FUNCT
     def setNbFrames(self, nb_frames):
         deb.Param('Setting nb. frames: %s' % nb_frames)
         self.m_ct_acq.setAcqNbFrames(nb_frames)
-    
+
     @DEB_MEMBER_FUNCT
     def getNbFrames(self):
         nb_frames = self.m_ct_acq.getAcqNbFrames()
@@ -452,7 +452,7 @@ class FrelonAcq:
         else:
             acq_mode = Single
         self.setAcqMode(acq_mode)
-        
+
     @DEB_MEMBER_FUNCT
     def getStripeConcat(self):
         acq_mode = self.getAcqMode()
@@ -464,18 +464,18 @@ class FrelonAcq:
     def setNbConcatFrames(self, concat_frames):
         deb.Param('Setting nb. concat. frames: %s' % concat_frames)
         self.m_ct_acq.setConcatNbFrames(concat_frames)
-    
+
     @DEB_MEMBER_FUNCT
     def getNbConcatFrames(self):
         concat_frames = self.m_ct_acq.getConcatNbFrames()
         deb.Return('Getting nb. concat. frames: %s' % concat_frames)
         return concat_frames
-    
+
     @DEB_MEMBER_FUNCT
     def setExpTime(self, exp_time):
         deb.Param('Setting exp. time: %s' % exp_time)
         self.m_ct_acq.setAcqExpoTime(exp_time)
-    
+
     @DEB_MEMBER_FUNCT
     def getExpTime(self):
         exp_time = self.m_ct_acq.getAcqExpoTime()
@@ -486,7 +486,7 @@ class FrelonAcq:
     def setSPB2Config(self, spb2_config):
         deb.Param('Setting SPB2 config: %s' % spb2_config)
         self.m_cam.setSPB2Config(spb2_config)
-       
+
     @DEB_MEMBER_FUNCT
     def getSPB2Config(self):
         spb2_config = self.m_cam.getSPB2Config()
@@ -497,18 +497,18 @@ class FrelonAcq:
     def setFileStreamAct(self, act, stream_idx):
         deb.Param('Setting file stream %d act: %s' % (stream_idx, act))
         self.m_ct_saving.setStreamActive(stream_idx, act)
-        
+
     @DEB_MEMBER_FUNCT
     def getFileStreamAct(self, stream_idx):
         act = self.m_ct_saving.getStreamActive(stream_idx)
         deb.Return('Getting file stream %d act: %s' % (stream_idx, act))
         return act
-        
+
     @DEB_MEMBER_FUNCT
     def setFileStreamPar(self, file_par, stream_idx=0):
         deb.Param('Setting file stream %d par: %s' % (stream_idx, file_par))
         self.m_ct_saving.setParameters(file_par, stream_idx)
-        
+
     @DEB_MEMBER_FUNCT
     def getFileStreamPar(self, stream_idx=0):
         file_par = self.m_ct_saving.getParameters(stream_idx)
@@ -519,10 +519,10 @@ class FrelonAcq:
     def setCommonFileHeader(self, header_map):
         deb.Param('Setting common file header: %d keys' % len(header_map))
         self.m_ct_saving.setCommonHeader(header_map)
-        
+
     @DEB_MEMBER_FUNCT
     def writeFile(self, frame_nb, nb_frames=1):
-        deb.Param('Writing %d frame(s) starting from %s to file' % 
+        deb.Param('Writing %d frame(s) starting from %s to file' %
                   (nb_frames, frame_nb))
         self.m_ct_saving.writeFrame(frame_nb, nb_frames)
 
@@ -534,7 +534,7 @@ class FrelonAcq:
         else:
             saving_mode = CtSaving.Manual
         self.m_ct_saving.setSavingMode(saving_mode)
-    
+
     @DEB_MEMBER_FUNCT
     def getAutosave(self):
         saving_mode = self.m_ct_saving.getSavingMode()
@@ -551,7 +551,7 @@ class FrelonAcq:
             except:
                 pass
         self.m_ct_display.setActive(livedisplay_act)
-        
+
     @DEB_MEMBER_FUNCT
     def getLiveDisplay(self):
         livedisplay_act = self.m_ct_display.isActive()
@@ -563,18 +563,18 @@ class FrelonAcq:
         deb.Trace('Starting live mode')
         self.setNbFrames(0)
         self.startAcq()
-        
+
     @DEB_MEMBER_FUNCT
     def stopLive(self):
         deb.Trace('Stoping live mode')
         self.stopAcq()
-        
+
     @DEB_MEMBER_FUNCT
     def startAcq(self):
         deb.Trace('Starting the device')
         self.m_ct.prepareAcq()
         self.m_ct.startAcq()
-        
+
     @DEB_MEMBER_FUNCT
     def stopAcq(self):
         deb.Trace('Stopping the device')
@@ -587,7 +587,7 @@ class FrelonAcq:
         s = data.tostring()
         deb.Return('Getting frame(s) #%s: %s bytes' % (frame_nb, len(s)))
         return s
-        
+
     @DEB_MEMBER_FUNCT
     def execFrelonSerialCmd(self, cmd):
         deb.Param('Executing Frelon serial cmd: %s' % cmd)
@@ -628,7 +628,7 @@ class FrelonAcq:
                                                             or  'Off')
             deb.Trace("Updating ShutEnable: %s" % shut_enable)
             self.m_ct_shut.setMode(shut_mode)
-            
+
     @DEB_MEMBER_FUNCT
     def readBeamParams(self):
         frame_nb = -1
@@ -643,9 +643,9 @@ class FrelonAcq:
         timeout = 1
         bpm_pars = self.m_bpm_mgr.getResult(timeout)
         if bpm_pars.errorCode != self.m_bpm_mgr.OK:
-            raise Exception, ('Error calculating beam params: %d' %
+            raise Exception('Error calculating beam params: %d' %
                               bpm_pars.errorCode)
-        
+
         nr_spots = 1
         auto_cal = -1
         exp_time = self.getExpTime()
