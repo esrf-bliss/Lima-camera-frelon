@@ -25,5 +25,4 @@ SET(test_src test_frelon
 		test_frelon_interface
 		test_frelon_spectroscopy)
 
-INCLUDE(TestCamera)
 
