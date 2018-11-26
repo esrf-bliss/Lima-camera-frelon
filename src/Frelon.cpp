@@ -95,6 +95,8 @@ static const RegPair RegStrCList[] = {
 
 	RegPair(LookUpTable,	"LUT"),
 	RegPair(ImagesPerEOF,	"NEF"),
+	RegPair(WeightValDFl,	"WVD"),
+	RegPair(WeightValSig,	"WVS"),
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -113,6 +115,12 @@ static Reg FloatRegCList[] = {
 	ReadoutTime,
 };
 RegListType lima::Frelon::FloatRegList(C_LIST_ITERS(FloatRegCList));
+
+static Reg SignedRegCList[] = {
+	WeightValDFl,
+	WeightValSig,
+};
+RegListType lima::Frelon::SignedRegList(C_LIST_ITERS(SignedRegCList));
 
 typedef pair<Reg, double> RegSleepPair;
 static const RegSleepPair RegSleepCList[] = {

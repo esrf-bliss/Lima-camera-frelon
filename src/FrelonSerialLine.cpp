@@ -110,6 +110,19 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 			m_curr_reg = it->first;
 	}
 
+	bool has_sign = !msg_parts[MsgSign].empty();
+	if (has_sign) {
+		bool ok = false;
+		if (reg_found) {
+			const RegListType& list = SignedRegList;
+			RegListType::const_iterator end = list.end();
+			ok = (find(list.begin(), end, m_curr_reg) != end);
+		}
+		if (!ok)
+			THROW_HW_ERROR(InvalidValue)
+				<< "Command " << cmd << " cannot be negative";
+	}
+
 	m_curr_cache = false;
 	if (reg_found && isRegCacheable(m_curr_reg)) {
 		bool is_req = !msg_parts[MsgReq].empty();
@@ -409,7 +422,8 @@ void SerialLine::splitMsg(const string& msg,
 	const static RegEx re("^(?P<sync>>)?"
 			      "(?P<cmd>[A-Za-z]+)"
 			      "((?P<req>\\?)|"
-			      "(?P<val>[0-9]+(\\.(?P<dec>[0-9]+))?))?"
+			      "(?P<val>(?P<sign>-?)[0-9]+"
+			      "(\\.(?P<dec>[0-9]+))?))?"
 			      "(?P<term>[\r\n]+)?$");
 
 	RegEx::FullNameMatchType match;
@@ -422,6 +436,7 @@ void SerialLine::splitMsg(const string& msg,
 		KeyPair(MsgSync, "sync"), KeyPair(MsgCmd, "cmd"), 
 		KeyPair(MsgVal,  "val"),  KeyPair(MsgDec, "dec"),  
 		KeyPair(MsgReq,  "req"),  KeyPair(MsgTerm, "term"),
+		KeyPair(MsgSign, "sign"),
 	};
 	const KeyPair *it, *end = C_LIST_END(key_list);
 	for (it = key_list; it != end; ++it) {
@@ -431,8 +446,8 @@ void SerialLine::splitMsg(const string& msg,
 	}
 
 	DEB_RETURN() << DEB_VAR2(msg_parts[MsgSync], msg_parts[MsgCmd]);
-	DEB_RETURN() << DEB_VAR3(msg_parts[MsgReq], msg_parts[MsgVal],
-				 msg_parts[MsgDec]);
+	DEB_RETURN() << DEB_VAR4(msg_parts[MsgReq], msg_parts[MsgSign],
+				 msg_parts[MsgVal], msg_parts[MsgDec]);
 }
 
 void SerialLine::decodeFmtResp(const string& ans, string& fmt_resp)

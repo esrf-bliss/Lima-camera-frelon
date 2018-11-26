@@ -37,7 +37,7 @@ class SerialLine : public HwSerialLine
 
  public:
 	enum MsgPart {
-		MsgSync, MsgCmd, MsgVal, MsgDec, MsgReq, MsgTerm, 
+		MsgSync, MsgCmd, MsgVal, MsgDec, MsgReq, MsgTerm, MsgSign,
 	};
 	
 	enum AnsPart {
