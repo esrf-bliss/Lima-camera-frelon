@@ -49,7 +49,7 @@ enum Reg {
 	SingleVertXfer,	SingleHorzXfer,	AllVertXfer,	AllHorzXfer,
 	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
 	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
-	LookUpTable,	ImagesPerEOF,
+	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
 };
 
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -58,6 +58,7 @@ extern RegStrMapType RegStrMap;
 typedef std::vector<Reg> RegListType;
 extern RegListType CacheableRegList;
 extern RegListType FloatRegList;
+extern RegListType SignedRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;

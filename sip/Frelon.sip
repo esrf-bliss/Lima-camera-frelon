@@ -69,6 +69,7 @@ public:
 typedef std::vector<Reg> RegListType;
 extern RegListType CacheableRegList;
 extern RegListType FloatRegList;
+extern RegListType SignedRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;
