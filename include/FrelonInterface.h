@@ -177,7 +177,7 @@ class SyncCtrlObj : public HwSyncCtrlObj
 	virtual void getValidRanges(ValidRangesType& valid_ranges);
 
  private:
-	class DeadTimeChangedCallback : public Camera::DeadTimeChangedCallback
+	class DeadTimeChangedCallback : public Frelon::DeadTimeChangedCallback
 	{
 		DEB_CLASS_NAMESPC(DebModCamera, "DeadTimeChangedCallback", 
 				  "Frelon::SynCtrlObj");

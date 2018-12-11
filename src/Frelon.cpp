@@ -97,6 +97,9 @@ static const RegPair RegStrCList[] = {
 	RegPair(ImagesPerEOF,	"NEF"),
 	RegPair(WeightValDFl,	"WVD"),
 	RegPair(WeightValSig,	"WVS"),
+
+	RegPair(SeqClockFreq,	"FSC"),
+	RegPair(CamChar,	"CCH"),
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 

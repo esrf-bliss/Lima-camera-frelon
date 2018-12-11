@@ -101,6 +101,7 @@ add_library(frelon SHARED
   src/Frelon.cpp
   src/FrelonSerialLine.cpp
   src/FrelonModel.cpp
+  src/FrelonGeometry.cpp
   src/FrelonCamera.cpp
   src/FrelonTimingCtrl.cpp
   src/FrelonInterface.cpp

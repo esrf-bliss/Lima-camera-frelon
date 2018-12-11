@@ -48,6 +48,7 @@ class Firmware
 	static const Frelon::Firmware v2_1b;
 	static const Frelon::Firmware v3_0i;
 	static const Frelon::Firmware v3_1c;
+	static const Frelon::Firmware v4_1;
 };
 
 
@@ -59,6 +60,12 @@ class Model
 %End
 
  public:
+	enum Feature {
+		Taper, HamaChip,
+		ModesAvail, TimeCalc, HTDCmd, GoodHTD, ImagesPerEOF, CamChar,
+		SPB1, SPB2, SPB8,
+	};
+
 	Model();
 	~Model();
 
@@ -68,22 +75,18 @@ class Model
 	void setComplexSerialNb(int  complex_ser_nb);
 	void getComplexSerialNb(int& complex_ser_nb /Out/);
 
+	void setCamChar(int  cam_char);
+	void getCamChar(int& cam_char /Out/);
+	
 	void reset();
 	bool isValid();
 
 	int  getSerialNb();
-	bool isSPB1();
-	bool isSPB2();
 	int  getAdcBits();
-	int  getChipType();
-	bool isHama();
-	bool hasTaper();
-	bool hasModesAvail();
-	bool hasTimeCalc();
-	bool hasHTDCmd();
-	bool hasGoodHTD();
-	bool hasImagesPerEOF();
-
+	Frelon::ChipType getChipType();
+	Frelon::SPBConType getSPBConType();
+	Frelon::GeomType getGeomType();
+	bool has(Model::Feature feature);
 	double getPixelSize();
 
 	std::string getName();

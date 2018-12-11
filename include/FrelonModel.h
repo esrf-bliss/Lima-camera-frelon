@@ -53,6 +53,7 @@ class Firmware
 	static const Firmware v2_1b;
 	static const Firmware v3_0i;
 	static const Firmware v3_1c;
+	static const Firmware v4_1;
 
  private:
 	void checkValid();
@@ -108,6 +109,12 @@ class Model
 	DEB_CLASS_NAMESPC(DebModCamera, "Model", "Frelon");
 
  public:
+	enum Feature {
+		Taper, HamaChip,
+		ModesAvail, TimeCalc, HTDCmd, GoodHTD, ImagesPerEOF, CamChar,
+		SPB1, SPB2, SPB8,
+	};
+
 	Model();
 	~Model();
 
@@ -117,42 +124,39 @@ class Model
 	void setComplexSerialNb(int  complex_ser_nb);
 	void getComplexSerialNb(int& complex_ser_nb);
 
+	void setCamChar(int  cam_char);
+	void getCamChar(int& cam_char);
+	
 	void reset();
 	bool isValid();
 
 	int  getSerialNb();
-	bool isSPB1();
-	bool isSPB2();
+	SPBType getSPBType();
 	int  getAdcBits();
 	ChipType getChipType();
-	bool isHama();
-	bool hasTaper();
-	bool hasModesAvail();
-	bool hasTimeCalc();
-	bool hasHTDCmd();
-	bool hasGoodHTD();
-	bool hasImagesPerEOF();
-
+	SPBConType getSPBConType();
+	GeomType getGeomType();
+	bool has(Feature feature);
 	double getPixelSize();
 
 	std::string getName();
 
  private:
+	typedef std::map<Feature, bool> FeatureMap;
+
 	void update();
 	void checkValid();
 	int getSerialNbParam(SerNbParam param);
 
 	Firmware m_firmware;
 	int m_complex_ser_nb;
+	int m_cam_char;
 
-	bool     m_valid;
-	ChipType m_chip_type;
-	bool     m_is_hama;
-	bool     m_modes_avail;
-	bool     m_time_calc;
-	bool     m_htd_cmd;
-	bool     m_good_htd;
-	bool     m_images_per_eof;
+	bool       m_valid;
+	SPBType    m_spb_type;
+	ChipType   m_chip_type;
+	SPBConType m_spb_con_type;
+	FeatureMap m_feature;
 };
 
 

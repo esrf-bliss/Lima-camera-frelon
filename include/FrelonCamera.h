@@ -24,6 +24,7 @@
 
 #include "FrelonSerialLine.h"
 #include "FrelonModel.h"
+#include "FrelonGeometry.h"
 #include "FrelonTimingCtrl.h"
 #include "lima/HwMaxImageSizeCallback.h"
 
@@ -33,26 +34,11 @@ namespace lima
 namespace Frelon
 {
 
-class Camera : public HwMaxImageSizeCallbackGen
+class Camera
 {
 	DEB_CLASS_NAMESPC(DebModCamera, "Camera", "Frelon");
 
  public:
-	class DeadTimeChangedCallback {
-		DEB_CLASS_NAMESPC(DebModCamera, "DeadTimeChangedCallback", 
-				  "Frelon::Camera");
-	public:
-		DeadTimeChangedCallback();
-		virtual ~DeadTimeChangedCallback();
-
-	protected:
-		virtual void deadTimeChanged(double dead_time) = 0;
-
-	private:
-		friend class Camera;
-		Camera *m_cam;
-	};
-
 	Camera(Espia::SerialLine& espia_ser_line);
 	~Camera();
 
@@ -76,8 +62,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setFrameTransferMode(FrameTransferMode  ftm);
 	void getFrameTransferMode(FrameTransferMode& ftm);
 
-	static std::string getInputChanModeName(FrameTransferMode ftm, 
-						InputChan input_chan);
+	std::string getInputChanModeName(FrameTransferMode ftm, 
+					 InputChan input_chan);
 
 	void getMaxFrameDim(FrameDim& max_frame_dim);
 	void getFrameDim(FrameDim& frame_dim);
@@ -128,7 +114,7 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void setSPB2Config(SPB2Config  spb2_config);
 	void getSPB2Config(SPB2Config& spb2_config);
 
-	static std::string getSPB2ConfigName(SPB2Config spb2_config);
+        std::string getSPB2ConfigName(SPB2Config spb2_config);
 
 	void setExtSyncEnable(ExtSync  ext_sync_ena);
 	void getExtSyncEnable(ExtSync& ext_sync_ena);
@@ -147,8 +133,8 @@ class Camera : public HwMaxImageSizeCallbackGen
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 
- protected:
-	virtual void setMaxImageSizeCallbackActive(bool cb_active);
+	void registerMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
+	void unregisterMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
 
  private:
 	static const double ResetLinkWaitTime;
@@ -165,44 +151,6 @@ class Camera : public HwMaxImageSizeCallbackGen
 
 	void sendCmd(Cmd cmd);
 
-	int getModesAvail();
-
-	void setChanMode(int  chan_mode);
-	void getChanMode(int& chan_mode);
-	
-	void calcBaseChanMode(FrameTransferMode ftm, int& base_chan_mode);
-	void calcChanMode(FrameTransferMode ftm, InputChan input_chan,
-			  int& chan_mode);
-	void calcFTMInputChan(int chan_mode, FrameTransferMode& ftm, 
-			      InputChan& input_chan);
-
-	void setFlipMode(int  flip_mode);
-	void getFlipMode(int& flip_mode);
-
-	Flip  getMirror();
-	Point getNbChan();
-	Size  getCcdSize();
-	Size  getChanSize();
-        Flip  getRoiInsideMirror();
-
-	void writeChanRoi(const Roi& chan_roi);
-	void readChanRoi(Roi& chan_roi);
-
-	void xformChanCoords(const Point& point, Point& chan_point, 
-			     Corner& ref_corner);
-	void calcImageRoi(const Roi& chan_roi, const Flip& roi_inside_mirror,
-			  Roi& image_roi, Point& roi_bin_offset);
-	void calcFinalRoi(const Roi& image_roi, const Point& roi_offset,
-			  Roi& final_roi);
-	void calcChanRoi(const Roi& image_roi, Roi& chan_roi,
-			 Flip& roi_inside_mirror);
-	void calcChanRoiOffset(const Roi& req_roi, const Roi& image_roi,
-			       Point& roi_offset);
-        void checkRoiMode(const Roi& roi);
-	void processSetRoi(const Roi& req_roi, Roi& hw_roi, Roi& chan_roi, 
-			   Point& roi_offset);
-	void resetRoiBinOffset();
-	
 	void setTimeUnitFactor(TimeUnitFactor  time_unit_factor);
 	void getTimeUnitFactor(TimeUnitFactor& time_unit_factor);
 	int  calcTimeUnits(double time_sec, TimeUnitFactor time_unit_factor);
@@ -211,27 +159,16 @@ class Camera : public HwMaxImageSizeCallbackGen
 	bool waitIdleStatus(Status& status, bool use_ser_line=false,
 			    bool read_spb2=false);
 
-	void deadTimeChanged();
-
 	AutoMutex lock();
 
 	SerialLine m_ser_line;
 	Model m_model;
 	TimingCtrl m_timing_ctrl;
-	Point m_chan_roi_offset;
-	Point m_roi_bin_offset;
+	AutoPtr<Geometry> m_geom;
 	TrigMode m_trig_mode;
 	int m_nb_frames;
-	bool m_mis_cb_act;
 	Mutex m_lock;
 	bool m_started;
-	double m_dead_time;
-	DeadTimeChangedCallback *m_dead_time_cb;
-};
-
-inline bool Camera::isChanActive(InputChan curr, InputChan chan)
-{
-	return (curr & chan) == chan;
 };
 
 inline AutoMutex Camera::lock()
