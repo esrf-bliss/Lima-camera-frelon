@@ -256,9 +256,13 @@ void Model::update()
 	}
 
 	DEB_TRACE() << DEB_VAR3(m_spb_type, m_spb_con_type, m_chip_type);
-	DEB_TRACE() << DEB_VAR6(has(Taper), has(HamaChip), has(ModesAvail), 
-				has(TimeCalc), has(HTDCmd), has(GoodHTD));
-	DEB_TRACE() << DEB_VAR2(has(ImagesPerEOF), has(CamChar));
+	bool has_Taper = has(Taper), has_HamaChip = has(HamaChip);
+	bool has_ModesAvail = has(ModesAvail), has_TimeCalc = has(TimeCalc);
+	bool has_HTDCmd = has(HTDCmd), has_GoodHTD = has(GoodHTD);
+	bool has_ImagesPerEOF = has(ImagesPerEOF), has_CamChar = has(CamChar);
+	DEB_TRACE() << DEB_VAR6(has_Taper, has_HamaChip, has_ModesAvail, 
+				has_TimeCalc, has_HTDCmd, has_GoodHTD);
+	DEB_TRACE() << DEB_VAR2(has_ImagesPerEOF, has_CamChar);
 }
 
 bool Model::isValid()

@@ -322,6 +322,11 @@ void Geometry::getMaxFrameDim(FrameDim& max_frame_dim)
 	ChipType chip_type = m_model.getChipType();
 	max_frame_dim = ChipMaxFrameDimMap[chip_type];
 
+	if (isFrelon16(SPBType2))
+		max_frame_dim /= Point(2, 2);
+	else if (isFrelon16(SPBType8))
+		max_frame_dim /= Point(1, 2);
+
 	DEB_RETURN() << DEB_VAR1(max_frame_dim);
 }
 
@@ -356,7 +361,12 @@ void Geometry::checkFlip(Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(flip);
-	DEB_TRACE() << "All standard flip modes are supported";
+	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+		DEB_TRACE() << "No flip is supported";
+		flip = Flip(false);
+	} else {
+		DEB_TRACE() << "All standard flip modes are supported";
+	}
 	DEB_RETURN() << DEB_VAR1(flip);
 }
 
@@ -384,9 +394,12 @@ void Geometry::checkBin(Bin& bin)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
-	
-	int bin_x = min(bin.getX(), int(MaxBinX));
-	int bin_y = min(bin.getY(), int(MaxBinY));
+
+	bool frelon16 = (isFrelon16(SPBType2) || isFrelon16(SPBType8));
+	int max_bin_x = frelon16 ? 1 : int(MaxBinX);
+	int max_bin_y = frelon16 ? 1 : int(MaxBinY);
+	int bin_x = min(bin.getX(), max_bin_x);
+	int bin_y = min(bin.getY(), max_bin_y);
 	bin = Bin(bin_x, bin_y);
 
 	DEB_RETURN() << DEB_VAR1(bin);
@@ -481,7 +494,8 @@ Flip Geometry::getMirror()
 	Flip mirror;
 	mirror.x = isChanActive(curr, Chan12) || isChanActive(curr, Chan34);
 	mirror.y = isChanActive(curr, Chan13) || isChanActive(curr, Chan24);
-
+	if (isFrelon16(SPBType2) || isFrelon16(SPBType8))
+		mirror = Flip(false);
 	DEB_RETURN() << DEB_VAR1(mirror);
 	return mirror;
 }
@@ -921,8 +935,12 @@ void Geometry::getReadoutTime(double& readout_time)
 		THROW_HW_ERROR(NotSupported) << "Camera does not have "
 					     << "readout time calculation";
 
-	readFloatRegister(ReadoutTime, readout_time);
-	readout_time *= 1e-6;
+	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+		readout_time = 100e-3;
+	} else {
+		readFloatRegister(ReadoutTime, readout_time);
+		readout_time *= 1e-6;
+	}
 	DEB_RETURN() << DEB_VAR1(readout_time);
 }
 
@@ -933,8 +951,12 @@ void Geometry::getTransferTime(double& xfer_time)
 		THROW_HW_ERROR(NotSupported) << "Camera does not have "
 					     << "shift time calculation";
 
-	readFloatRegister(TransferTime, xfer_time);
-	xfer_time *= 1e-6;
+	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+		xfer_time = 100e-3;
+	} else {
+		readFloatRegister(TransferTime, xfer_time);
+		xfer_time *= 1e-6;
+	}
 	DEB_RETURN() << DEB_VAR1(xfer_time);
 }
 

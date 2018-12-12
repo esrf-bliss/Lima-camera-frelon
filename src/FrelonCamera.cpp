@@ -110,10 +110,10 @@ void Camera::syncRegs()
 		switch (geom_type) {
 		case SPB12_4_Quad:
 		case Hamamatsu:
-			m_geom = new Geometry(*this);
-			break;
 		case SPB2_F16:
 		case SPB8_F16_Half:
+			m_geom = new Geometry(*this);
+			break;
 		case SPB8_F16_Dual:
 			THROW_HW_ERROR(NotSupported) << DEB_VAR1(geom_type);
 		}
@@ -727,6 +727,12 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb2)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR2(use_ser_line, read_spb2);
+
+	bool isSPB8 = (m_model.getSPBType() == SPBType8);
+	if (isSPB8 && read_spb2) {
+		DEB_TRACE() << "SPB8: Ignoring " << DEB_VAR1(read_spb2);
+		read_spb2 = false;
+	}
 
 	bool has_good_htd = m_model.has(Model::GoodHTD);
 	if ((use_ser_line || read_spb2) && !has_good_htd)

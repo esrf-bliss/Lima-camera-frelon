@@ -22,7 +22,7 @@
 #ifndef FRELONGEOMETRY_H
 #define FRELONGEOMETRY_H
 
-#include "Frelon.h"
+#include "FrelonModel.h"
 #include "lima/HwMaxImageSizeCallback.h"
 
 namespace lima
@@ -31,7 +31,6 @@ namespace lima
 namespace Frelon
 {
 
-class Model;
 class Geometry;
 class Camera;
 
@@ -62,7 +61,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void sync();
 
 	bool getDefInputChan(FrameTransferMode ftm,
-				     InputChan& input_chan);
+			     InputChan& input_chan);
 	void setInputChan(InputChan  input_chan);
 	void getInputChan(InputChan& input_chan);
 
@@ -70,7 +69,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void getFrameTransferMode(FrameTransferMode& ftm);
 
 	std::string getInputChanModeName(FrameTransferMode ftm, 
-					 InputChan input_chan);
+						 InputChan input_chan);
 
 	void getMaxFrameDim(FrameDim& max_frame_dim);
 	void getFrameDim(FrameDim& frame_dim);
@@ -111,6 +110,8 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
+
+	bool isFrelon16(SPBType spb_type);
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
@@ -167,6 +168,14 @@ inline bool Geometry::isChanActive(InputChan curr, InputChan chan)
 {
 	return (curr & chan) == chan;
 };
+
+inline bool Geometry::isFrelon16(SPBType spb_type)
+{
+	GeomType geom_type = m_model.getGeomType();
+	return (((geom_type == SPB2_F16) && (spb_type == SPBType2)) ||
+		(((geom_type == SPB8_F16_Half) ||
+		  (geom_type == SPB8_F16_Half)) && (spb_type == SPBType8)));
+}
 
 
 } // namespace Frelon

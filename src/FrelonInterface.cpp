@@ -875,10 +875,12 @@ void Interface::resetDefaults()
 
 	stopAcq();
 
+	bool f16 = (m_cam.getModel().getChipType() == Andanta_CcdFT2k);
+	FrameTransferMode ftm_seq[2] = {!f16 ? FFM : FTM, !f16 ? FTM : FFM};
 	FrameTransferMode ftm;
 	InputChan input_chan;
-	if (!m_cam.getDefInputChan(ftm=FFM, input_chan)	&&
-	    !m_cam.getDefInputChan(ftm=FTM, input_chan))
+	if (!m_cam.getDefInputChan(ftm=ftm_seq[0], input_chan)	&&
+	    !m_cam.getDefInputChan(ftm=ftm_seq[1], input_chan))
 		THROW_HW_ERROR(Error) << "Cannot find default input channel!!";
 	m_cam.setFrameTransferMode(ftm);
 	m_cam.setInputChan(input_chan);
