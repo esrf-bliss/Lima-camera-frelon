@@ -298,6 +298,9 @@ class Interface : HwInterface
 %TypeHeaderCode
 #include "FrelonInterface.h"
 #include <algorithm>
+
+#define LIMA_HWCAP_TO_SIP_FRELON_CTRLOBJ_CASE(cppHwCap, aCap)		\
+	LIMA_HWCAP_TO_SIP_CTRLOBJ_CASE(cppHwCap, aCap, Frelon::aCap##CtrlObj)
 %End
 
  public:
