@@ -97,6 +97,9 @@ static const RegPair RegStrCList[] = {
 	RegPair(ImagesPerEOF,	"NEF"),
 	RegPair(WeightValDFl,	"WVD"),
 	RegPair(WeightValSig,	"WVS"),
+
+	RegPair(SeqClockFreq,	"FSC"),
+	RegPair(CamChar,	"CCH"),
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -204,26 +207,28 @@ lima::Frelon::TimeUnitFactorMap(C_LIST_ITERS(TimeUnitFactorCList));
 
 typedef pair<ChipType, FrameDim> ChipFrameDimPair;
 static const ChipFrameDimPair ChipMaxFrameDimCList[] = {
-	ChipFrameDimPair(Atmel,        FrameDim(2048, 2048, Bpp16)),
-	ChipFrameDimPair(Kodak,        FrameDim(2048, 2048, Bpp16)),
-	ChipFrameDimPair(E2V_2k,       FrameDim(2048, 2048, Bpp16)),
-	ChipFrameDimPair(E2V_2kNotMPP, FrameDim(2048, 2048, Bpp16)),
-	ChipFrameDimPair(E2V_4k,       FrameDim(4096, 4096, Bpp16)),
-	ChipFrameDimPair(E2V_4kNotMPP, FrameDim(4096, 4096, Bpp16)),
-	ChipFrameDimPair(Hama,         FrameDim(2048,    1, Bpp16)),
+	ChipFrameDimPair(Atmel,           FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(Kodak,           FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_2k,          FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_2kNotMPP,    FrameDim(2048, 2048, Bpp16)),
+	ChipFrameDimPair(E2V_4k,          FrameDim(4096, 4096, Bpp16)),
+	ChipFrameDimPair(E2V_4kNotMPP,    FrameDim(4096, 4096, Bpp16)),
+	ChipFrameDimPair(Hama,            FrameDim(2048,    1, Bpp16)),
+	ChipFrameDimPair(Andanta_CcdFT2k, FrameDim(1920, 3840, Bpp16)),
 };
 ChipMaxFrameDimMapType 
 lima::Frelon::ChipMaxFrameDimMap(C_LIST_ITERS(ChipMaxFrameDimCList));
 
 typedef pair<ChipType, double> ChipSizePair;
 static const ChipSizePair ChipPixelSizeCList[] = {
-	ChipSizePair(Atmel,        14e-6),
-	ChipSizePair(Kodak,        24e-6),
-	ChipSizePair(E2V_2k,       15e-6),
-	ChipSizePair(E2V_2kNotMPP, 15e-6),
-	ChipSizePair(E2V_4k,       15e-6),
-	ChipSizePair(E2V_4kNotMPP, 15e-6),
-	ChipSizePair(Hama,         14e-6),
+	ChipSizePair(Atmel,           14e-6),
+	ChipSizePair(Kodak,           24e-6),
+	ChipSizePair(E2V_2k,          15e-6),
+	ChipSizePair(E2V_2kNotMPP,    15e-6),
+	ChipSizePair(E2V_4k,          15e-6),
+	ChipSizePair(E2V_4kNotMPP,    15e-6),
+	ChipSizePair(Hama,            14e-6),
+	ChipSizePair(Andanta_CcdFT2k, 16e-6),
 };
 ChipPixelSizeMapType 
 lima::Frelon::ChipPixelSizeMap(C_LIST_ITERS(ChipPixelSizeCList));

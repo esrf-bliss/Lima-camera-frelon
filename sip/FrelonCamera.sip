@@ -23,7 +23,6 @@
 namespace Frelon
 {
 
-
 class Camera
 {
 
@@ -32,15 +31,6 @@ class Camera
 %End
 
  public:
-	class DeadTimeChangedCallback {
-	public:
-		DeadTimeChangedCallback();
-		virtual ~DeadTimeChangedCallback();
-
-	protected:
-		virtual void deadTimeChanged(double dead_time) = 0;
-	};
-
 	Camera(Espia::SerialLine& espia_ser_line);
 	~Camera();
 
@@ -65,8 +55,8 @@ class Camera
 	void setFrameTransferMode(Frelon::FrameTransferMode  ftm);
 	void getFrameTransferMode(Frelon::FrameTransferMode& ftm /Out/);
 
-	static std::string getInputChanModeName(Frelon::FrameTransferMode ftm, 
-						Frelon::InputChan input_chan);
+	std::string getInputChanModeName(Frelon::FrameTransferMode ftm, 
+					 Frelon::InputChan input_chan);
 
 	void getMaxFrameDim(FrameDim& max_frame_dim /Out/);
 	void getFrameDim(FrameDim& frame_dim /Out/);
@@ -117,7 +107,7 @@ class Camera
 	void setSPB2Config(Frelon::SPB2Config  spb2_config);
 	void getSPB2Config(Frelon::SPB2Config& spb2_config /Out/);
 
-	static std::string getSPB2ConfigName(Frelon::SPB2Config spb2_config);
+	std::string getSPB2ConfigName(Frelon::SPB2Config spb2_config);
 
 	void setExtSyncEnable(Frelon::ExtSync  ext_sync_ena);
 	void getExtSyncEnable(Frelon::ExtSync& ext_sync_ena /Out/);
@@ -134,12 +124,10 @@ class Camera
 	void stop();
 	bool isRunning();
 
-	void registerDeadTimeChangedCallback(Frelon::Camera::DeadTimeChangedCallback& cb);
-	void unregisterDeadTimeChangedCallback(Frelon::Camera::DeadTimeChangedCallback& cb);
-
- protected:
-	virtual void setMaxImageSizeCallbackActive(bool cb_active);
-
+	void registerDeadTimeChangedCallback(Frelon::DeadTimeChangedCallback& cb);
+	void unregisterDeadTimeChangedCallback(Frelon::DeadTimeChangedCallback& cb);
+	void registerMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
+	void unregisterMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
 };
 
 

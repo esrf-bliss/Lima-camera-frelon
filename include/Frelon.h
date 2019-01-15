@@ -50,6 +50,7 @@ enum Reg {
 	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
 	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
 	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
+	SeqClockFreq,	CamChar,
 };
 
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -115,12 +116,12 @@ extern InputChanList DefInputChanList;
 
 
 enum SerNbParam {
-	SerNb      = 0x00ff,
-	SPB1Kodak  = 0x2000,
-	SPB1Adc16  = 0x4000,
-	SPB2Sign   = 0x0100,
-	SPB2Type   = 0x7000,
-	Taper      = 0x8000,
+	SerNb        = 0x00ff,
+	SPB1Kodak    = 0x2000,
+	SPB1Adc16    = 0x4000,
+	SPBTypeMask  = 0x0300,
+	ChipTypeMask = 0x7800,
+	TaperFlag    = 0x8000,
 };
 
 enum RoiMode {
@@ -135,6 +136,10 @@ typedef std::map<TimeUnitFactor, double> TimeUnitFactorMapType;
 extern TimeUnitFactorMapType TimeUnitFactorMap;
 
 
+enum SPBType {
+	SPBType1, SPBType2, SPBType8,
+};
+
 enum ChipType {
 	Atmel,
 	Kodak,
@@ -143,6 +148,19 @@ enum ChipType {
 	E2V_4k,
 	E2V_4kNotMPP,
 	Hama,
+	Andanta_CcdFT2k = 8,
+};
+
+enum SPBConType {
+	SPBConNone, SPBConX, SPBConY, SPBConXY,
+};
+
+enum GeomType {
+	SPB12_4_Quad,
+	Hamamatsu,
+	SPB2_F16,
+	SPB8_F16_Half,
+	SPB8_F16_Dual,
 };
 
 typedef std::map<ChipType, FrameDim> ChipMaxFrameDimMapType;

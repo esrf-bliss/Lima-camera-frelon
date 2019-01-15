@@ -32,6 +32,7 @@ const Firmware Firmware::v2_0c("2.0c");
 const Firmware Firmware::v2_1b("2.1b");
 const Firmware Firmware::v3_0i("3.0i");
 const Firmware Firmware::v3_1c("3.1c");
+const Firmware Firmware::v4_1("4.1");
 
 Firmware::Firmware()
 {
@@ -180,12 +181,29 @@ void Model::getComplexSerialNb(int& complex_ser_nb)
 	DEB_RETURN() << DEB_VAR1(DEB_HEX(complex_ser_nb));
 }
 
+void Model::setCamChar(int cam_char)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(DEB_HEX(cam_char));
+
+	m_cam_char = cam_char;
+	update();
+}
+
+void Model::getCamChar(int& cam_char)
+{
+	DEB_MEMBER_FUNCT();
+	cam_char = m_cam_char;
+	DEB_RETURN() << DEB_VAR1(DEB_HEX(cam_char));
+}
+
 void Model::reset()
 {
 	DEB_MEMBER_FUNCT();
 
 	m_firmware.reset();
 	m_complex_ser_nb = 0;
+	m_cam_char = 0;
 	update();
 }
 
@@ -198,27 +216,53 @@ void Model::update()
 	if (!m_valid)
 		return;
 
-	bool is_spb2 = isSPB2();
-	if (is_spb2)
-		m_chip_type = ChipType(getSerialNbParam(SPB2Type) >> 12);
-	else
+	m_spb_type = SPBType(getSerialNbParam(SPBTypeMask) >> 8);
+	m_feature[SPB1] = (m_spb_type == SPBType1);
+	m_feature[SPB2] = (m_spb_type == SPBType2);
+	m_feature[SPB8] = (m_spb_type == SPBType8);
+
+	m_feature[Taper] = bool(getSerialNbParam(TaperFlag));
+
+	bool is_spb1 = has(SPB1);
+	if (!is_spb1) {
+		int raw = getSerialNbParam(ChipTypeMask) >> 11;
+		m_chip_type = ChipType(((raw & 1) << 3) | (raw >> 1));
+	} else {
 		m_chip_type = bool(getSerialNbParam(SPB1Kodak)) ? Kodak : Atmel;
-	m_is_hama = (m_chip_type == Hama);
+	}
+	m_feature[HamaChip] = (m_chip_type == Hama);
 
-	bool firm_v2_0c = (is_spb2 && (m_firmware >= Firmware::v2_0c));
-	m_htd_cmd = firm_v2_0c;
+	bool firm_v2_0c = (!is_spb1 && (m_firmware >= Firmware::v2_0c));
+	m_feature[HTDCmd] = firm_v2_0c;
 
-	bool firm_v2_1b = (is_spb2 && (m_firmware >= Firmware::v2_1b));
-	m_modes_avail = m_time_calc = firm_v2_1b;
+	bool firm_v2_1b = (!is_spb1 && (m_firmware >= Firmware::v2_1b));
+	m_feature[ModesAvail] = firm_v2_1b;
+	m_feature[TimeCalc] = firm_v2_1b;
 
-	bool firm_v3_0i = (is_spb2 && (m_firmware >= Firmware::v3_0i));
-	m_good_htd = firm_v3_0i;
+	bool firm_v3_0i = (!is_spb1 && (m_firmware >= Firmware::v3_0i));
+	m_feature[GoodHTD] = firm_v3_0i;
 
-	bool firm_v3_1c = (is_spb2 && (m_firmware >= Firmware::v3_1c));
-	m_images_per_eof = firm_v3_1c;
+	bool firm_v3_1c = (!is_spb1 && (m_firmware >= Firmware::v3_1c));
+	m_feature[ImagesPerEOF] = firm_v3_1c;
 
-	DEB_TRACE() << DEB_VAR6(m_chip_type, m_is_hama, m_modes_avail, 
-				m_time_calc, m_good_htd, m_images_per_eof);
+	m_spb_con_type = SPBConX;
+	bool firm_v4_1 = (!is_spb1 && (m_firmware >= Firmware::v4_1));
+	m_feature[CamChar] = firm_v4_1;
+	if (has(CamChar) && m_cam_char) {
+		int type_bits = (m_cam_char >> 8) & SPBConXY;
+		SPBConType spb_con_type = SPBConType(type_bits);
+		if (spb_con_type != SPBConNone)
+			m_spb_con_type = spb_con_type;
+	}
+
+	DEB_TRACE() << DEB_VAR3(m_spb_type, m_spb_con_type, m_chip_type);
+	bool has_Taper = has(Taper), has_HamaChip = has(HamaChip);
+	bool has_ModesAvail = has(ModesAvail), has_TimeCalc = has(TimeCalc);
+	bool has_HTDCmd = has(HTDCmd), has_GoodHTD = has(GoodHTD);
+	bool has_ImagesPerEOF = has(ImagesPerEOF), has_CamChar = has(CamChar);
+	DEB_TRACE() << DEB_VAR6(has_Taper, has_HamaChip, has_ModesAvail, 
+				has_TimeCalc, has_HTDCmd, has_GoodHTD);
+	DEB_TRACE() << DEB_VAR2(has_ImagesPerEOF, has_CamChar);
 }
 
 bool Model::isValid()
@@ -257,23 +301,19 @@ int Model::getSerialNb()
 	return ser_nb;
 }
 
-bool Model::isSPB1()
+SPBType Model::getSPBType()
 {
 	DEB_MEMBER_FUNCT();
-
-	bool frelon_spb1 = !isSPB2();
-	DEB_RETURN() << DEB_VAR1(frelon_spb1);
-	return frelon_spb1;
+	DEB_RETURN() << DEB_VAR1(m_spb_type);
+	return m_spb_type;
 }
-	
-bool Model::isSPB2()
+
+bool Model::has(Feature feature)
 {
 	DEB_MEMBER_FUNCT();
-	checkValid();
-
-	bool frelon_spb2 = bool(getSerialNbParam(SPB2Sign));
-	DEB_RETURN() << DEB_VAR1(frelon_spb2);
-	return frelon_spb2;
+	bool feature_act = m_feature[feature];
+	DEB_RETURN() << DEB_VAR1(feature_act);
+	return feature_act;
 }
 	
 int Model::getAdcBits()
@@ -281,7 +321,7 @@ int Model::getAdcBits()
 	DEB_MEMBER_FUNCT();
 
 	int adc_bits;
-	if (isSPB1())
+	if (has(SPB1))
 		adc_bits = bool(getSerialNbParam(SPB1Adc16)) ? 16 : 14;
 	else
 		adc_bits = 16;
@@ -299,73 +339,39 @@ ChipType Model::getChipType()
 	return m_chip_type;
 }
 
-bool Model::isHama()
+SPBConType Model::getSPBConType()
 {
 	DEB_MEMBER_FUNCT();
 
 	checkValid();
 
-	DEB_RETURN() << DEB_VAR1(m_is_hama);
-	return m_is_hama;
+	DEB_RETURN() << DEB_VAR1(m_spb_con_type);
+	return m_spb_con_type;
 }
 
-bool Model::hasTaper()
-{
-	DEB_MEMBER_FUNCT();
-
-	bool taper = bool(getSerialNbParam(Taper));
-	DEB_RETURN() << DEB_VAR1(taper);
-	return taper;
-}
-
-bool Model::hasModesAvail()
+GeomType Model::getGeomType()
 {
 	DEB_MEMBER_FUNCT();
 
 	checkValid();
 
-	DEB_RETURN() << DEB_VAR1(m_modes_avail);
-	return m_modes_avail;
-}
+	GeomType geom_type = SPB12_4_Quad;
+	ChipType chip_type = getChipType();
+	if (has(SPB2)) {
+		if (chip_type == Hama)
+			geom_type = Hamamatsu;
+		else if (chip_type == Andanta_CcdFT2k)
+			geom_type = SPB2_F16;
+	} else if (has(SPB8)) {
+		if (chip_type != Andanta_CcdFT2k)
+			THROW_HW_ERROR(Error) << "SPB8 only supports Frelon16";
+		SPBConType spb_con_type = getSPBConType();
+		bool dual_spb = (spb_con_type == SPBConXY);
+		geom_type = dual_spb ? SPB8_F16_Dual : SPB8_F16_Half;
+	}
 
-bool Model::hasTimeCalc()
-{
-	DEB_MEMBER_FUNCT();
-
-	checkValid();
-
-	DEB_RETURN() << DEB_VAR1(m_time_calc);
-	return m_time_calc;
-}
-
-bool Model::hasHTDCmd()
-{
-	DEB_MEMBER_FUNCT();
-
-	checkValid();
-
-	DEB_RETURN() << DEB_VAR1(m_htd_cmd);
-	return m_htd_cmd;
-}
-
-bool Model::hasGoodHTD()
-{
-	DEB_MEMBER_FUNCT();
-
-	checkValid();
-
-	DEB_RETURN() << DEB_VAR1(m_good_htd);
-	return m_good_htd;
-}
-
-bool Model::hasImagesPerEOF()
-{
-	DEB_MEMBER_FUNCT();
-
-	checkValid();
-
-	DEB_RETURN() << DEB_VAR1(m_images_per_eof);
-	return m_images_per_eof;
+	DEB_RETURN() << DEB_VAR1(geom_type);
+	return geom_type;
 }
 
 double Model::getPixelSize()
@@ -384,24 +390,38 @@ string Model::getName()
 	checkValid();
 
 	string chip_model;
-	switch (getChipType()) {
-	case Atmel:        chip_model = "A7899";   break;
-	case Kodak:        chip_model = "K4320";   break;
-	case E2V_2k:       chip_model = "E230-42"; break;
-	case E2V_2kNotMPP: chip_model = "E231-42"; break;
-	case E2V_4k:       chip_model = "E230-84"; break;
-	case E2V_4kNotMPP: chip_model = "E231-84"; break;
-	case Hama:         chip_model = "Hama";    break;
-	default:           chip_model = "Unknown";
+	ChipType chip_type = getChipType();
+	switch (chip_type) {
+	case Atmel:           chip_model = "A7899";              break;
+	case Kodak:           chip_model = "K4320";              break;
+	case E2V_2k:          chip_model = "E230-42";            break;
+	case E2V_2kNotMPP:    chip_model = "E231-42";            break;
+	case E2V_4k:          chip_model = "E230-84";            break;
+	case E2V_4kNotMPP:    chip_model = "E231-84";            break;
+	case Hama:            chip_model = "Hama";               break;
+	case Andanta_CcdFT2k: chip_model = "CcdFT2k-F16";        break;
+	default:              chip_model = "Unknown";
 	}
 
-	string hd = isSPB2() ? "HD " : "";
-	string name = hd + chip_model;
+	string prefix = "";
+	if (chip_type == Andanta_CcdFT2k) {
+		prefix = "SPB";
+		if (has(SPB2)) {
+			prefix += "2";
+		} else {
+			prefix += "8";
+			if (getSPBConType() == SPBConXY)
+				prefix += "x2";
+		}
+	} else if (has(SPB2)) {
+		prefix = "HD";
+	}
+	string name = prefix + (!prefix.empty() ? " " : "") + chip_model;
 
-	if (isSPB1() && (getAdcBits() == 16))
+	if (has(SPB1) && (getAdcBits() == 16))
 		name += " 16bit";
 
-	if (hasTaper())
+	if (has(Taper))
 		name += "T";
 
 	DEB_RETURN() << DEB_VAR1(name);
