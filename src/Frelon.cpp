@@ -92,6 +92,7 @@ static const RegPair RegStrCList[] = {
 	RegPair(StatusAMTB,	"SAB"),
 	RegPair(StatusAMTC,	"SAC"),
 	RegPair(StatusAMTD,	"SAD"),
+	RegPair(StatusAMTE,	"SAE"),
 
 	RegPair(LookUpTable,	"LUT"),
 	RegPair(ImagesPerEOF,	"NEF"),

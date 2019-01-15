@@ -120,9 +120,9 @@ class Camera
 	void getExtSyncEnable(ExtSync& ext_sync_ena);
 
 	void getStatus(Status& status, bool use_ser_line=false,
-		       bool read_spb2=false);
+		       bool read_spb=false);
 	bool waitStatus(Status& status, Status mask, double timeout,
-			bool use_ser_line=false, bool read_spb2=false);
+			bool use_ser_line=false, bool read_spb=false);
 
 	void getImageCount(unsigned int& img_count, bool only_lsw=false);
 
@@ -157,7 +157,9 @@ class Camera
 
 	double getMaxIdleWaitTime();
 	bool waitIdleStatus(Status& status, bool use_ser_line=false,
-			    bool read_spb2=false);
+			    bool read_spb=false);
+
+	Status getSPBStatus();
 
 	AutoMutex lock();
 
@@ -177,11 +179,11 @@ inline AutoMutex Camera::lock()
 }
 
 inline bool Camera::waitIdleStatus(Status& status, bool use_ser_line, 
-				   bool read_spb2)
+				   bool read_spb)
 {
 	status = Wait;
 	return waitStatus(status, StatusMask, getMaxIdleWaitTime(),
-			  use_ser_line, read_spb2);
+			  use_ser_line, read_spb);
 }
 
 
