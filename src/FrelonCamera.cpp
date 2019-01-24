@@ -112,10 +112,9 @@ void Camera::syncRegs()
 		case Hamamatsu:
 		case SPB2_F16:
 		case SPB8_F16_Half:
+		case SPB8_F16_Dual:
 			m_geom = new Geometry(*this);
 			break;
-		case SPB8_F16_Dual:
-			THROW_HW_ERROR(NotSupported) << DEB_VAR1(geom_type);
 		}
 	}
 
@@ -143,17 +142,17 @@ void Camera::syncRegsGoodHTD()
 	DEB_MEMBER_FUNCT();
 
 	Status status;
-	bool use_ser_line, read_spb2;
-	use_ser_line = read_spb2 = true;
-	getStatus(status, use_ser_line, read_spb2);
+	bool use_ser_line, read_spb;
+	use_ser_line = read_spb = true;
+	getStatus(status, use_ser_line, read_spb);
 	if (status != Wait)
-		DEB_WARNING() << "Camera not IDLE: " 
+		DEB_WARNING() << "Camera not IDLE/READY: " 
 			      << DEB_VAR1(DEB_HEX(status));
 	int retry = 0;
 	do {
 		setExtSyncEnable(ExtSyncNone);
 		sendCmd(Stop);
-		bool ok = waitIdleStatus(status, use_ser_line, read_spb2);
+		bool ok = waitIdleStatus(status, use_ser_line, read_spb);
 		if (ok) {
 			if (retry > 0)
 				DEB_TRACE() << "Succeeded after " << retry 
@@ -166,7 +165,7 @@ void Camera::syncRegsGoodHTD()
 	} while (++retry < 2);
 					  
 	if (status != Wait)
-		THROW_HW_ERROR(Error) << "Wrong camera BUSY status: "
+		THROW_HW_ERROR(Error) << "Wrong camera status: BAD_INIT/BUSY: "
 				      << DEB_VAR1(DEB_HEX(status));
 }
 
@@ -723,26 +722,18 @@ void Camera::getExtSyncEnable(ExtSync& ext_sync_ena)
 	DEB_RETURN() << DEB_VAR1(ext_sync_ena);
 }
 
-void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb2)
+void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb)
 {
 	DEB_MEMBER_FUNCT();
-	DEB_PARAM() << DEB_VAR2(use_ser_line, read_spb2);
-
-	bool isSPB8 = (m_model.getSPBType() == SPBType8);
-	if (isSPB8 && read_spb2) {
-		DEB_TRACE() << "SPB8: Ignoring " << DEB_VAR1(read_spb2);
-		read_spb2 = false;
-	}
+	DEB_PARAM() << DEB_VAR2(use_ser_line, read_spb);
 
 	bool has_good_htd = m_model.has(Model::GoodHTD);
-	if ((use_ser_line || read_spb2) && !has_good_htd)
+	if ((use_ser_line || read_spb) && !has_good_htd)
 		THROW_HW_ERROR(NotSupported) << "SPB2/ser. line status "
 			"not supported: must upgrade to good HTD firmware";
 
-	int spb2_status = 0;
-	if (read_spb2)
-		readRegister(StatusAMTA, spb2_status);
-
+	int spb_status = read_spb ? getSPBStatus() : 0;
+	
 	int ccd_status;
 	if (use_ser_line) {
 		readRegister(StatusSeqA, ccd_status);
@@ -751,23 +742,65 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb2)
 		dev.getCcdStatus(ccd_status);
 	}
 
-	if (read_spb2) {
-		if ((spb2_status & SPB2_TstEnvMask) != 0)
-			ccd_status |= EspiaXfer;
-		if ((spb2_status & SPB2_TstInitMask) != SPB2_TstInitGood)
-			ccd_status |= InInit;
-	}
+	ccd_status |= spb_status;
 
 	status = Status(ccd_status);
 	DEB_RETURN() << DEB_VAR1(DEB_HEX(status));
 }
 
+Status Camera::getSPBStatus()
+{
+	DEB_MEMBER_FUNCT();
+
+	bool in_init = false;
+	bool in_xfer = false;
+	bool isSPB8 = (m_model.getSPBType() == SPBType8);
+	if (isSPB8) {
+		int spb_con_type = m_model.getSPBConType();
+		for (int i = 0; i < 2; ++i) {
+			bool present = ((spb_con_type & (1 << i)) != 0);
+			if (!present)
+				continue;
+			int chan = i ? 8 : 0;
+			writeRegister(ChanControl, chan);
+			int spb_status, mask, good;
+			readRegister(StatusAMTA, spb_status);
+			mask = SPB8_SAA_TstInitMask;
+			good = SPB8_SAA_TstInitGood;
+			in_init |= ((spb_status & mask) != good);
+			readRegister(StatusAMTE, spb_status);
+			mask = SPB8_SAE_TstEnvMask;
+			good = 0;
+			in_xfer |= ((spb_status & mask) != good);
+		}
+	} else {
+		int spb_status, mask, good;
+		readRegister(StatusAMTA, spb_status);
+		mask = SPB2_SAA_TstInitMask;
+		good = SPB2_SAA_TstInitGood;
+		in_init |= ((spb_status & mask) != good);
+		mask = SPB2_SAA_TstEnvMask;
+		good = 0;
+		in_xfer |= ((spb_status & mask) != good);
+	}
+	DEB_TRACE() << DEB_VAR2(in_init, in_xfer);
+
+	int spb_status = 0;
+	if (in_init)
+		spb_status |= InInit;
+	if (in_xfer)
+		spb_status |= EspiaXfer;
+
+	DEB_RETURN() << DEB_VAR1(spb_status);
+	return Status(spb_status);
+}
+
 bool Camera::waitStatus(Status& status, Status mask, double timeout,
-			bool use_ser_line, bool read_spb2)
+			bool use_ser_line, bool read_spb)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR5(DEB_HEX(status), DEB_HEX(mask), timeout,
-				use_ser_line, read_spb2);
+				use_ser_line, read_spb);
 
 	Timestamp end;
 	if (timeout > 0)
@@ -783,7 +816,7 @@ bool Camera::waitStatus(Status& status, Status mask, double timeout,
 			break;
 		}
 
-		getStatus(curr_status, use_ser_line, read_spb2);
+		getStatus(curr_status, use_ser_line, read_spb);
 		good_status = ((curr_status & mask) == status);
 	}
 

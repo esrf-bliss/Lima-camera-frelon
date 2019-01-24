@@ -174,7 +174,7 @@ inline bool Geometry::isFrelon16(SPBType spb_type)
 	GeomType geom_type = m_model.getGeomType();
 	return (((geom_type == SPB2_F16) && (spb_type == SPBType2)) ||
 		(((geom_type == SPB8_F16_Half) ||
-		  (geom_type == SPB8_F16_Half)) && (spb_type == SPBType8)));
+		  (geom_type == SPB8_F16_Dual)) && (spb_type == SPBType8)));
 }
 
 

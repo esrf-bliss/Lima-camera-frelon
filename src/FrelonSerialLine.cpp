@@ -31,7 +31,7 @@ using namespace std;
 const double SerialLine::TimeoutSingle    = 0.5;
 const double SerialLine::TimeoutNormal    = 2.0;
 const double SerialLine::TimeoutMultiLine = 3.0;
-const double SerialLine::TimeoutReset     = 5.0;
+const double SerialLine::TimeoutReset     = 10.0;
 
 
 SerialLine::SerialLine(Espia::SerialLine& espia_ser_line)
@@ -231,7 +231,9 @@ void SerialLine::readSingleLine(string& buffer, int max_len, double timeout)
 
 	if ((m_curr_op == DoReset) && (timeout == TimeoutDefault))
 		timeout = TimeoutReset;
-	m_espia_ser_line.readLine(buffer, max_len, timeout);
+	do {
+		m_espia_ser_line.readLine(buffer, max_len, timeout);
+	} while ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
 
 	decodeFmtResp(buffer, m_curr_fmt_resp);
 
