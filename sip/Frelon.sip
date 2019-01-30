@@ -171,7 +171,7 @@ enum GeomType {
 	SPB12_4_Quad,
 	Hamamatsu,
 	SPB2_F16,
-	SPB8_F16_Half,
+	SPB8_F16_Single,
 	SPB8_F16_Dual,
 };
 

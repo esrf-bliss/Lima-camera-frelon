@@ -111,7 +111,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
 
-	bool isFrelon16(SPBType spb_type);
+	bool isFrelon16();
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
@@ -169,12 +169,9 @@ inline bool Geometry::isChanActive(InputChan curr, InputChan chan)
 	return (curr & chan) == chan;
 };
 
-inline bool Geometry::isFrelon16(SPBType spb_type)
+inline bool Geometry::isFrelon16()
 {
-	GeomType geom_type = m_model.getGeomType();
-	return (((geom_type == SPB2_F16) && (spb_type == SPBType2)) ||
-		(((geom_type == SPB8_F16_Half) ||
-		  (geom_type == SPB8_F16_Dual)) && (spb_type == SPBType8)));
+	return (m_model.getChipType() == Andanta_CcdFT2k);
 }
 
 

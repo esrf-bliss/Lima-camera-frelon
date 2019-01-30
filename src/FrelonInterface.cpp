@@ -811,6 +811,15 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 {
 	DEB_CONSTRUCTOR();
 
+	bool f16_dual = (m_cam.getModel().getGeomType() == SPB8_F16_Dual);
+	if (f16_dual != m_acq.getDev().isMeta())
+		THROW_HW_ERROR(Error) << "Frelon16 2xSPB8 / Espia mismatch";
+	Espia::SGImgConfig img_config = (f16_dual ? Espia::SGImgConcatVert2 :
+						    Espia::SGImgNorm);
+	FrameDim det_frame_dim;
+	m_cam.getFrameDim(det_frame_dim);
+	m_acq.setSGImgConfig(img_config, det_frame_dim.getSize());
+
 	m_acq.registerAcqEndCallback(m_acq_end_cb);
 	m_acq.registerEventCallback(m_event_cb);
 

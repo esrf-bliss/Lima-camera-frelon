@@ -126,7 +126,10 @@ class Model
 
 	void setCamChar(int  cam_char);
 	void getCamChar(int& cam_char);
-	
+
+	void setF16ForceSingle(bool  f16_force_single);
+	void getF16ForceSingle(bool& f16_force_single);
+
 	void reset();
 	bool isValid();
 
@@ -151,6 +154,7 @@ class Model
 	Firmware m_firmware;
 	int m_complex_ser_nb;
 	int m_cam_char;
+	bool m_f16_force_single;
 
 	bool       m_valid;
 	SPBType    m_spb_type;
