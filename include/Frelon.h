@@ -77,8 +77,12 @@ extern CmdStrMapType CmdStrMap;
 
 
 enum MultiLineCmd {
-	Help,		Config,		Dac,		Volt,
+	Help,		Config,		Dac,		MonitorVolt,
 	Aoi,		PLL,		Timing,		StatusCam,
+	SampWeight,	ConfigSeq,	ConfigSPB,	ConfigDLine,
+	ConfigDAC,	ConfigADC,	ConfigPLL,	ConfigSWeight,
+	ConfigVCXO,	ConfigAlarm,	ConfigAoi,	UserInfo,
+	MonitorADC,
 };
 
 typedef std::map<MultiLineCmd, std::string> MultiLineCmdStrMapType;
