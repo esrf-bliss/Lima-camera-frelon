@@ -89,8 +89,12 @@ extern CmdStrMapType CmdStrMap;
 */
 
 enum MultiLineCmd {
-	Help,		Config,		Dac,		Volt,
+	Help,		Config,		Dac,		MonitorVolt,
 	Aoi,		PLL,		Timing,		StatusCam,
+	SampWeight,	ConfigSeq,	ConfigSPB,	ConfigDLine,
+	ConfigDAC,	ConfigADC,	ConfigPLL,	ConfigSWeight,
+	ConfigVCXO,	ConfigAlarm,	ConfigAoi,	UserInfo,
+	MonitorADC,
 };
 /*
 typedef std::map<MultiLineCmd, std::string> MultiLineCmdStrMapType;
@@ -167,7 +171,7 @@ enum GeomType {
 	SPB12_4_Quad,
 	Hamamatsu,
 	SPB2_F16,
-	SPB8_F16_Half,
+	SPB8_F16_Single,
 	SPB8_F16_Dual,
 };
 

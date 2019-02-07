@@ -322,9 +322,10 @@ void Geometry::getMaxFrameDim(FrameDim& max_frame_dim)
 	ChipType chip_type = m_model.getChipType();
 	max_frame_dim = ChipMaxFrameDimMap[chip_type];
 
-	if (isFrelon16(SPBType2))
+	GeomType geom_type = m_model.getGeomType();
+	if (geom_type == SPB2_F16)
 		max_frame_dim /= Point(2, 2);
-	else if (isFrelon16(SPBType8))
+	else if (geom_type == SPB8_F16_Single)
 		max_frame_dim /= Point(1, 2);
 
 	DEB_RETURN() << DEB_VAR1(max_frame_dim);
@@ -361,7 +362,7 @@ void Geometry::checkFlip(Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(flip);
-	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+	if (isFrelon16()) {
 		DEB_TRACE() << "No flip is supported";
 		flip = Flip(false);
 	} else {
@@ -395,7 +396,7 @@ void Geometry::checkBin(Bin& bin)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
 
-	bool frelon16 = (isFrelon16(SPBType2) || isFrelon16(SPBType8));
+	bool frelon16 = (isFrelon16());
 	int max_bin_x = frelon16 ? 1 : int(MaxBinX);
 	int max_bin_y = frelon16 ? 1 : int(MaxBinY);
 	int bin_x = min(bin.getX(), max_bin_x);
@@ -494,7 +495,7 @@ Flip Geometry::getMirror()
 	Flip mirror;
 	mirror.x = isChanActive(curr, Chan12) || isChanActive(curr, Chan34);
 	mirror.y = isChanActive(curr, Chan13) || isChanActive(curr, Chan24);
-	if (isFrelon16(SPBType2) || isFrelon16(SPBType8))
+	if (isFrelon16())
 		mirror = Flip(false);
 	DEB_RETURN() << DEB_VAR1(mirror);
 	return mirror;
@@ -935,7 +936,7 @@ void Geometry::getReadoutTime(double& readout_time)
 		THROW_HW_ERROR(NotSupported) << "Camera does not have "
 					     << "readout time calculation";
 
-	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+	if (isFrelon16()) {
 		readout_time = 100e-3;
 	} else {
 		readFloatRegister(ReadoutTime, readout_time);
@@ -951,7 +952,7 @@ void Geometry::getTransferTime(double& xfer_time)
 		THROW_HW_ERROR(NotSupported) << "Camera does not have "
 					     << "shift time calculation";
 
-	if (isFrelon16(SPBType2) || isFrelon16(SPBType8)) {
+	if (isFrelon16()) {
 		xfer_time = 100e-3;
 	} else {
 		readFloatRegister(TransferTime, xfer_time);

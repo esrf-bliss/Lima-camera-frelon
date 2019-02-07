@@ -139,6 +139,7 @@ void Firmware::checkValid()
 }
 
 Model::Model()
+	: m_f16_force_single(false)
 {
 	DEB_CONSTRUCTOR();
 
@@ -197,6 +198,22 @@ void Model::getCamChar(int& cam_char)
 	DEB_RETURN() << DEB_VAR1(DEB_HEX(cam_char));
 }
 
+void Model::setF16ForceSingle(bool f16_force_single)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(f16_force_single);
+
+	m_f16_force_single = f16_force_single;
+	update();
+}
+
+void Model::getF16ForceSingle(bool& f16_force_single)
+{
+	DEB_MEMBER_FUNCT();
+	f16_force_single = m_f16_force_single;
+	DEB_RETURN() << DEB_VAR1(f16_force_single);
+}
+
 void Model::reset()
 {
 	DEB_MEMBER_FUNCT();
@@ -204,6 +221,7 @@ void Model::reset()
 	m_firmware.reset();
 	m_complex_ser_nb = 0;
 	m_cam_char = 0;
+
 	update();
 }
 
@@ -251,6 +269,10 @@ void Model::update()
 	if (has(CamChar) && m_cam_char) {
 		int type_bits = (m_cam_char >> 8) & SPBConXY;
 		SPBConType spb_con_type = SPBConType(type_bits);
+		if ((spb_con_type == SPBConXY) && m_f16_force_single) {
+			DEB_TRACE() << "Limiting to single SPB8";
+			spb_con_type = SPBConX;
+		}
 		if (spb_con_type != SPBConNone)
 			m_spb_con_type = spb_con_type;
 	}
@@ -367,7 +389,7 @@ GeomType Model::getGeomType()
 			THROW_HW_ERROR(Error) << "SPB8 only supports Frelon16";
 		SPBConType spb_con_type = getSPBConType();
 		bool dual_spb = (spb_con_type == SPBConXY);
-		geom_type = dual_spb ? SPB8_F16_Dual : SPB8_F16_Half;
+		geom_type = dual_spb ? SPB8_F16_Dual : SPB8_F16_Single;
 	}
 
 	DEB_RETURN() << DEB_VAR1(geom_type);

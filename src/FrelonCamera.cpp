@@ -111,7 +111,7 @@ void Camera::syncRegs()
 		case SPB12_4_Quad:
 		case Hamamatsu:
 		case SPB2_F16:
-		case SPB8_F16_Half:
+		case SPB8_F16_Single:
 		case SPB8_F16_Dual:
 			m_geom = new Geometry(*this);
 			break;

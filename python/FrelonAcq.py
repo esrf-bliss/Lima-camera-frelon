@@ -119,7 +119,11 @@ class FrelonAcq:
 
 
     @DEB_MEMBER_FUNCT
-    def __init__(self, espia_dev_nb):
+    def __init__(self, espia_dev_nb, *args, **kws):
+        espia_dev_nb2 = kws.get('espia_dev_nb2', None)
+        if len(args) > 0:
+            espia_dev_nb2 = args[0]
+
         self.m_cam_inited    = False
 
         self.m_e2v_corr      = None
@@ -129,11 +133,21 @@ class FrelonAcq:
         self.m_bpm_mgr       = Tasks.BpmManager()
         self.m_bpm_task      = Tasks.BpmTask(self.m_bpm_mgr)
 
-        self.m_edev          = Espia.Dev(espia_dev_nb)
-        self.m_acq           = Espia.Acq(self.m_edev)
-        self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
-        self.m_eserline      = Espia.SerialLine(self.m_edev)
+        self.m_ser_edev      = Espia.Dev(espia_dev_nb)
+        self.m_eserline      = Espia.SerialLine(self.m_ser_edev)
         self.m_cam           = Frelon.Camera(self.m_eserline)
+
+        self.m_acq_edev  = self.m_ser_edev
+        model = self.m_cam.getModel()
+        f16 = (model.getChipType() == Frelon.Andanta_CcdFT2k)
+        if f16:
+            if espia_dev_nb2 is not None:
+                self.m_acq_edev  = Espia.Meta([espia_dev_nb, espia_dev_nb2])
+            else:
+                model.setF16ForceSingle(True);
+
+        self.m_acq           = Espia.Acq(self.m_acq_edev)
+        self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
         self.m_buffer_mgr    = BufferCtrlMgr(self.m_buffer_cb_mgr)
         self.m_hw_inter      = Frelon.Interface(self.m_acq, self.m_buffer_mgr,
                                                 self.m_cam)
@@ -158,7 +172,8 @@ class FrelonAcq:
         del self.m_eserline;		gc.collect()
         del self.m_buffer_cb_mgr;	gc.collect()
         del self.m_acq;			gc.collect()
-        del self.m_edev;		gc.collect()
+        del self.m_acq_edev;		gc.collect()
+        del self.m_ser_edev;		gc.collect()
 
         if self.m_e2v_corr:
             del self.m_e2v_corr_update
@@ -167,8 +182,11 @@ class FrelonAcq:
         del self.m_bpm_task;		gc.collect()
         del self.m_bpm_mgr;		gc.collect()
 
-    def getEspiaDev(self):
-        return self.m_edev
+    def getEspiaSerDev(self):
+        return self.m_ser_edev
+
+    def getEspiaAcqDev(self):
+        return self.m_acq_edev
 
     def getEspiaAcq(self):
         return self.m_acq

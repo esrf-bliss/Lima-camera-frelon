@@ -78,6 +78,9 @@ class Model
 	void setCamChar(int  cam_char);
 	void getCamChar(int& cam_char /Out/);
 	
+	void setF16ForceSingle(bool  f16_force_single);
+	void getF16ForceSingle(bool& f16_force_single /Out/);
+
 	void reset();
 	bool isValid();
 
