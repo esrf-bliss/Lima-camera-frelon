@@ -59,7 +59,7 @@ class Frelon(PyTango.Device_4Impl):
         self.__ImageMode = {'FRAME TRANSFER': FrelonHw.FTM,
                             'FULL FRAME': FrelonHw.FFM}
 
-        self.__RoiMode = {'NONE' : FrelonHw.None,
+        self.__RoiMode = {'NONE' : 0,
                           'SLOW' : FrelonHw.Slow,
                           'FAST' : FrelonHw.Fast,
                           'KINETIC' : FrelonHw.Kinetic}
@@ -108,7 +108,7 @@ class Frelon(PyTango.Device_4Impl):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
     def __getattr__(self,name) :
-        obj = _FrelonAcq if name == 'E2VCorrectionActive' \
+        obj = _FrelonAcq if name.endswith("e2v_correction") \
                          else _FrelonAcq.getFrelonCamera()
         return AttrHelper.get_attr_4u(self, name, obj)
 
