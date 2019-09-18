@@ -325,7 +325,7 @@ class FrelonTacoProxy:
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         hw_par = [flip_mode, kin_line_beg, kin_stripes, 0, roi_mode]
         deb.Return('Getting hw par: %s' % hw_par)
-        hw_par_str = string.join(map(str, hw_par))
+        hw_par_str = ' '.join(map(str, hw_par))
         return hw_par_str
 
     @Core.DEB_MEMBER_FUNCT
