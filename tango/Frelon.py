@@ -39,7 +39,7 @@
 #         (c) - Bliss - ESRF
 #=============================================================================
 #
-import time, string
+import time
 import PyTango
 from Lima import Core
 from Lima import Frelon as FrelonHw
@@ -290,7 +290,7 @@ class FrelonTacoProxy:
     
     @Core.DEB_MEMBER_FUNCT
     def DevCcdSetHwPar(self, hw_par_str):
-        hw_par = map(int, string.split(hw_par_str))
+        hw_par = map(int, hw_par_str.split())
         deb.Param('Setting hw par: %s' % hw_par)
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         flip_mode, kin_line_beg, kin_stripes, d0, roi_mode_int = hw_par
