@@ -118,7 +118,7 @@ class Frelon(PyTango.Device_4Impl):
 
     @Core.DEB_MEMBER_FUNCT
     def resetLink(self) :
-        edev = _FrelonAcq.getEspiaDev()
+        edev = _FrelonAcq.getEspiaAcqDev()
         edev.resetLink()
         time.sleep(self.ResetLinkWaitTime)
 
