@@ -31,7 +31,7 @@ using namespace std;
 const double SerialLine::TimeoutSingle    = 0.5;
 const double SerialLine::TimeoutNormal    = 2.0;
 const double SerialLine::TimeoutMultiLine = 3.0;
-const double SerialLine::TimeoutReset     = 10.0;
+const double SerialLine::TimeoutReset     = 15.0;
 
 
 SerialLine::SerialLine(Espia::SerialLine& espia_ser_line)
@@ -229,17 +229,28 @@ void SerialLine::readSingleLine(string& buffer, int max_len, double timeout)
 		return;
 	}
 
-	if ((m_curr_op == DoReset) && (timeout == TimeoutDefault))
-		timeout = TimeoutReset;
+	if (timeout == TimeoutDefault) {
+		if (m_curr_op == DoReset) {
+			timeout = TimeoutReset;
+		} else if (m_curr_op == WriteReg) {
+			RegDoubleMapType::const_iterator it;
+			it = RegTimeoutMap.find(m_curr_reg);
+			if (it != RegTimeoutMap.end())
+				timeout = it->second;
+		}
+	}
+
+	Timestamp t0 = Timestamp::now();
 	do {
 		m_espia_ser_line.readLine(buffer, max_len, timeout);
 	} while ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
+	double ack_delay = Timestamp::now() - t0;
 
 	decodeFmtResp(buffer, m_curr_fmt_resp);
 
 	if (m_curr_op == WriteReg) {
 		double sleep_time = getRegSleepTime(m_curr_reg);
-		if (sleep_time > 0) {
+		if ((sleep_time > 0) && (ack_delay < sleep_time)) {
 			DEB_TRACE() << "Sleeping " << sleep_time << " s after "
 				    << "changing " << RegStrMap[m_curr_reg];
 			Sleep(sleep_time);

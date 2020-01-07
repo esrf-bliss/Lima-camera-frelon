@@ -126,13 +126,20 @@ static Reg SignedRegCList[] = {
 };
 RegListType lima::Frelon::SignedRegList(C_LIST_ITERS(SignedRegCList));
 
-typedef pair<Reg, double> RegSleepPair;
-static const RegSleepPair RegSleepCList[] = {
-	RegSleepPair(ConfigHD,    2.0),
-	RegSleepPair(BinHorz,     2.0),
-	RegSleepPair(LookUpTable, 2.0),
+typedef pair<Reg, double> RegDoublePair;
+
+static const RegDoublePair RegSleepCList[] = {
+	RegDoublePair(ConfigHD,    2.0),
+	RegDoublePair(BinHorz,     2.0),
+	RegDoublePair(LookUpTable, 2.0),
 };
 RegDoubleMapType lima::Frelon::RegSleepMap(C_LIST_ITERS(RegSleepCList));
+
+static const RegDoublePair RegTimeoutCList[] = {
+	RegDoublePair(ConfigHD,    10.0),
+	RegDoublePair(BinHorz,     10.0),
+};
+RegDoubleMapType lima::Frelon::RegTimeoutMap(C_LIST_ITERS(RegTimeoutCList));
 
 const int lima::Frelon::MaxRegVal = (1 << 16) - 1;
 

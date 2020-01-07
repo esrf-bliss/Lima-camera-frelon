@@ -75,6 +75,7 @@ extern RegListType SignedRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;
+extern RegDoubleMapType RegTimeoutMap;
 */
 
 const int MaxRegVal;
