@@ -44,6 +44,7 @@ class SerialLine : HwSerialLine
 	};
 
 //	typedef std::map<MsgPart, std::string> MsgPartStrMapType;
+//	typedef std::vector<std::string> StrList;
 
 //	static const double TimeoutSingle, TimeoutNormal, TimeoutMultiLine, 
 //			    TimeoutReset;
@@ -101,6 +102,7 @@ class SerialLine : HwSerialLine
 	void setCacheActive(bool  cache_act);
 	void getCacheActive(bool& cache_act /Out/);
 
+	void getResetTraceLog(std::vector<std::string>& reset_trace_log /Out/);
 };
 
 

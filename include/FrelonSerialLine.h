@@ -49,6 +49,7 @@ class SerialLine : public HwSerialLine
 	};
 
 	typedef std::map<MsgPart, std::string> MsgPartStrMapType;
+	typedef std::vector<std::string> StrList;
 
 	static const double TimeoutSingle, TimeoutNormal, TimeoutMultiLine, 
 			    TimeoutReset;
@@ -97,6 +98,8 @@ class SerialLine : public HwSerialLine
 	void clearCache();
 	void setCacheActive(bool  cache_act);
 	void getCacheActive(bool& cache_act);
+
+	void getResetTraceLog(StrList& reset_trace_log);
 
  private:
 	enum RegOp {
@@ -153,9 +156,11 @@ class SerialLine : public HwSerialLine
 	bool m_cache_act;
 	RegOp m_curr_op;
 	Reg m_curr_reg;
+	Cmd m_curr_cmd;
 	bool m_curr_cache;
 	std::string m_curr_resp;
 	std::string m_curr_fmt_resp;
+	StrList m_reset_trace_log;
 };
 
 inline void SerialLine::readRegister(Reg reg, int& val)

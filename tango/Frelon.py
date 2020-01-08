@@ -153,6 +153,13 @@ class Frelon(PyTango.Device_4Impl):
         serial = model.getSerialNb()
         attr.set_value("%d" % serial)
 
+    def read_reset_trace_log(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        ser_line = cam.getSerialLine()
+        reset_trace_log = ser_line.getResetTraceLog()
+        attr.set_value(reset_trace_log)
+
+
 class FrelonClass(PyTango.DeviceClass):
 
     class_property_list = {}
@@ -227,6 +234,10 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevString,
           PyTango.SCALAR,
           PyTango.READ]],
+        'reset_trace_log' :
+        [[PyTango.DevString,
+          PyTango.SPECTRUM,
+          PyTango.READ, 65535]],
         }
 
     def __init__(self,name) :

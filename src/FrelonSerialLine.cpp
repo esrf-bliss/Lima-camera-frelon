@@ -91,8 +91,9 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 
 	if (cmd == CmdStrMap[Reset]) {
 		m_curr_op = DoReset;
-		DEB_TRACE() << "DoReset: clearing reg cache";
+		DEB_TRACE() << "DoReset: clearing reg cache and reset trace";
 		m_reg_cache.clear();
+		m_reset_trace_log.clear();
 	} else {
 		MultiLineCmdStrMapType::const_iterator it, end;
 		end = MultiLineCmdStrMap.end();
@@ -154,8 +155,11 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 		}
 	}
 
-	if (m_curr_op == None)
+	if (m_curr_op == None) {
 		m_curr_op = DoCmd;
+		CmdStrMapType::const_iterator it = FindMapValue(CmdStrMap, cmd);
+		m_curr_cmd = (it != CmdStrMap.end()) ? it->first : Reset;
+	}
 
 	DEB_TRACE() << DEB_VAR1(m_curr_op);
 
@@ -230,7 +234,8 @@ void SerialLine::readSingleLine(string& buffer, int max_len, double timeout)
 	}
 
 	if (timeout == TimeoutDefault) {
-		if (m_curr_op == DoReset) {
+		bool slow_cmd = ((m_curr_op == DoCmd) && (m_curr_cmd == Reload));
+		if ((m_curr_op == DoReset) || slow_cmd) {
 			timeout = TimeoutReset;
 		} else if (m_curr_op == WriteReg) {
 			RegDoubleMapType::const_iterator it;
@@ -241,9 +246,15 @@ void SerialLine::readSingleLine(string& buffer, int max_len, double timeout)
 	}
 
 	Timestamp t0 = Timestamp::now();
+	bool reset_trace;
 	do {
 		m_espia_ser_line.readLine(buffer, max_len, timeout);
-	} while ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
+		reset_trace = ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
+		if (reset_trace) {
+			std::string s = buffer.substr(0, buffer.size() - 2);
+			m_reset_trace_log.push_back(s);
+		}
+	} while (reset_trace);
 	double ack_delay = Timestamp::now() - t0;
 
 	decodeFmtResp(buffer, m_curr_fmt_resp);
@@ -547,6 +558,14 @@ void SerialLine::getCacheActive(bool& cache_act)
 	AutoMutex l = lock(AutoMutex::Locked);
 	cache_act = m_cache_act;
 	DEB_RETURN() << DEB_VAR1(cache_act);
+}
+
+void SerialLine::getResetTraceLog(StrList& reset_trace_log)
+{
+	DEB_MEMBER_FUNCT();
+	AutoMutex l = lock(AutoMutex::Locked);
+	reset_trace_log = m_reset_trace_log;
+	DEB_RETURN() << DEB_VAR1(reset_trace_log);
 }
 
 void SerialLine::writeRegister(Reg reg, int  val)
