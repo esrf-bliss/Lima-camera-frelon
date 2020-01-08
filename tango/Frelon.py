@@ -45,6 +45,8 @@ from Lima import Core
 from Lima import Frelon as FrelonHw
 from Lima.Server import AttrHelper
 
+EspiaDevNbInvalid = 256
+
 class Frelon(PyTango.Device_4Impl):
 
     Core.DEB_CLASS(Core.DebModApplication, 'LimaFrelon')
@@ -130,6 +132,12 @@ class Frelon(PyTango.Device_4Impl):
             espia_dev_nb = self.espia_dev_nb
         attr.set_value(espia_dev_nb)
 
+    def read_espia_dev_nb2(self,attr) :
+        espia_dev_nb2 = -1
+        if self.espia_dev_nb2 != EspiaDevNbInvalid:
+            espia_dev_nb2 = self.espia_dev_nb2
+        attr.set_value(espia_dev_nb2)
+
     def read_roi_bin_offset(self,attr) :
         cam = _FrelonAcq.getFrelonCamera()
         roi_bin_offset = cam.getRoiBinOffset()
@@ -153,6 +161,9 @@ class FrelonClass(PyTango.DeviceClass):
         'espia_dev_nb':
         [PyTango.DevShort,
          "Espia board device number",[]],
+        'espia_dev_nb2':
+        [PyTango.DevShort,
+         "Second Espia board device number",[EspiaDevNbInvalid]],
         }
 
     cmd_list = {
@@ -169,6 +180,10 @@ class FrelonClass(PyTango.DeviceClass):
 
     attr_list = {
         'espia_dev_nb':
+        [[PyTango.DevShort,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'espia_dev_nb2':
         [[PyTango.DevShort,
           PyTango.SCALAR,
           PyTango.READ]],
@@ -428,10 +443,10 @@ FrelonTacoProxyCont = [FrelonTacoProxy()]
 #----------------------------------------------------------------------------
 _FrelonAcq = None
 
-def get_control(espia_dev_nb = 0,**keys) :
+def get_control(espia_dev_nb = 0, espia_dev_nb2 = EspiaDevNbInvalid, **keys) :
     global _FrelonAcq
     if _FrelonAcq is None:
-       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb))
+       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb), int(espia_dev_nb2))
     return _FrelonAcq.getGlobalControl() 
 
 def get_tango_specific_class_n_device():
