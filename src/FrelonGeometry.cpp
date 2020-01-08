@@ -323,9 +323,7 @@ void Geometry::getMaxFrameDim(FrameDim& max_frame_dim)
 	max_frame_dim = ChipMaxFrameDimMap[chip_type];
 
 	GeomType geom_type = m_model.getGeomType();
-	if (geom_type == SPB2_F16)
-		max_frame_dim /= Point(2, 2);
-	else if (geom_type == SPB8_F16_Single)
+	if (geom_type == SPB8_F16_Single)
 		max_frame_dim /= Point(1, 2);
 
 	DEB_RETURN() << DEB_VAR1(max_frame_dim);

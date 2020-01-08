@@ -383,10 +383,12 @@ GeomType Model::getGeomType()
 		if (chip_type == Hama)
 			geom_type = Hamamatsu;
 		else if (chip_type == Andanta_CcdFT2k)
-			geom_type = SPB2_F16;
+			THROW_HW_ERROR(NotSupported) << "Obsolete Frelon16 "
+						     << "with SPB2";
 	} else if (has(SPB8)) {
 		if (chip_type != Andanta_CcdFT2k)
-			THROW_HW_ERROR(Error) << "SPB8 only supports Frelon16";
+			THROW_HW_ERROR(NotSupported) << "SPB8 only supports "
+						     << "Frelon16";
 		SPBConType spb_con_type = getSPBConType();
 		bool dual_spb = (spb_con_type == SPBConXY);
 		geom_type = dual_spb ? SPB8_F16_Dual : SPB8_F16_Single;
