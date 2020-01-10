@@ -117,6 +117,7 @@ class Camera
 			bool read_spb2=false);
 
 	void getImageCount(unsigned int& img_count /Out/, bool only_lsw=false);
+	void getMissingExtStartPulses(int& missing_pulses /Out/);
 
 	void start();
 	void stop();

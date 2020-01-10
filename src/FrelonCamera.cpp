@@ -884,6 +884,13 @@ void Camera::getImageCount(unsigned int& img_count, bool only_lsw)
 	DEB_RETURN() << DEB_VAR1(img_count);
 }
 
+void Camera::getMissingExtStartPulses(int& missing_pulses)
+{
+	DEB_MEMBER_FUNCT();
+	readRegister(StatusSeqB, missing_pulses);
+	DEB_RETURN() << DEB_VAR1(missing_pulses);
+}
+
 void Camera::start()
 {
 	DEB_MEMBER_FUNCT();

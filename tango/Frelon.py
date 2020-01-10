@@ -254,6 +254,14 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevFloat,
           PyTango.SCALAR,
           PyTango.READ]],
+        'image_count' :
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'missing_ext_start_pulses' :
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ]],
         'camera_serial' :
         [[PyTango.DevString,
           PyTango.SCALAR,

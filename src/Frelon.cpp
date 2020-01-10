@@ -91,6 +91,7 @@ static const RegPair RegStrCList[] = {
 	RegPair(CcdModesAvail,	"CMA"),
 
 	RegPair(StatusSeqA,	"SSA"),
+	RegPair(StatusSeqB,	"SSB"),
 	RegPair(StatusAMTA,	"SAA"),
 	RegPair(StatusAMTB,	"SAB"),
 	RegPair(StatusAMTC,	"SAC"),
