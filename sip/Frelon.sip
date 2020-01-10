@@ -51,6 +51,9 @@ enum Reg {
 	StatusAMTE,
 	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
 	SeqClockFreq,	CamChar,
+	SeqTimRdOutH,	SeqTimRdOutL,	SeqTimTransferH,SeqTimTransferL,
+	SeqTimEShutH,	SeqTimEShutL,	SeqTimExposureH,SeqTimExposureL,
+	SeqTimFramePeriodH, SeqTimFramePeriodL,
 };
 /*
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -275,6 +278,14 @@ enum ShutMode {
 
 enum SPB2Config {
 	SPB2Precision, SPB2Speed,
+};
+
+struct SeqTimValues {
+	double readout_time;
+	double transfer_time;
+	double electronic_shutter_time;
+	double exposure_time;
+	double frame_period;
 };
 
 }; // namespace Frelon

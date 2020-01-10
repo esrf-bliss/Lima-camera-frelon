@@ -67,11 +67,6 @@ void Geometry::readRegister(Reg reg, int& val)
 	m_cam.readRegister(reg, val);
 }
 
-void Geometry::readFloatRegister(Reg reg, double& val)
-{
-	m_cam.readFloatRegister(reg, val);
-}
-
 void Geometry::sync()
 {
 	DEB_MEMBER_FUNCT();
@@ -927,47 +922,6 @@ void Geometry::resetRoiBinOffset()
 	}
 }
 
-void Geometry::getReadoutTime(double& readout_time)
-{
-	DEB_MEMBER_FUNCT();
-	if (!m_model.has(Model::TimeCalc))
-		THROW_HW_ERROR(NotSupported) << "Camera does not have "
-					     << "readout time calculation";
-
-	if (isFrelon16()) {
-		readout_time = 100e-3;
-	} else {
-		readFloatRegister(ReadoutTime, readout_time);
-		readout_time *= 1e-6;
-	}
-	DEB_RETURN() << DEB_VAR1(readout_time);
-}
-
-void Geometry::getTransferTime(double& xfer_time)
-{
-	DEB_MEMBER_FUNCT();
-	if (!m_model.has(Model::TimeCalc))
-		THROW_HW_ERROR(NotSupported) << "Camera does not have "
-					     << "shift time calculation";
-
-	if (isFrelon16()) {
-		xfer_time = 100e-3;
-	} else {
-		readFloatRegister(TransferTime, xfer_time);
-		xfer_time *= 1e-6;
-	}
-	DEB_RETURN() << DEB_VAR1(xfer_time);
-}
-
-void Geometry::getDeadTime(double& dead_time)
-{
-	DEB_MEMBER_FUNCT();
-	getTransferTime(dead_time);
-	if (dead_time == 0)
-		getReadoutTime(dead_time);
-	DEB_RETURN() << DEB_VAR1(dead_time);
-}
-
 void Geometry::setSPB2Config(SPB2Config spb2_config)
 {
 	DEB_MEMBER_FUNCT();
@@ -1038,7 +992,7 @@ void Geometry::deadTimeChanged()
 	DEB_MEMBER_FUNCT();
 
 	double dead_time;
-	getDeadTime(dead_time);
+	m_cam.getDeadTime(dead_time);
 	DEB_TRACE() << DEB_VAR2(dead_time, m_dead_time);
 	if (dead_time == m_dead_time) 
 		return;
@@ -1047,3 +1001,4 @@ void Geometry::deadTimeChanged()
 	if (m_dead_time_cb)
 		m_dead_time_cb->deadTimeChanged(dead_time);
 }
+

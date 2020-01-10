@@ -39,6 +39,7 @@ enum Reg {
 	ChanMode,	TimeUnit,	RoiEnable,	RoiFast, 
 	AntiBloom,	BinVert,	BinHorz,	ConfigHD,
 	RoiKinetic,	ShutEnable,	HardTrigDisable,
+	NbLinesXfer,	ShutElecSelect,
 	PixelFreq,	LineFreq,	FlipMode,	IntCalib,
 	DisplayImage,	AdcFloatDiode,	AdcSignal,	
 	DarkPixelCalib,	DarkPixelMode,	ChanControl,	Mire,
@@ -52,6 +53,11 @@ enum Reg {
 	StatusAMTE,
 	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
 	SeqClockFreq,	CamChar,
+	SeqTimRdOutH,		SeqTimRdOutL,
+	SeqTimTransferH,	SeqTimTransferL,
+	SeqTimEShutH,		SeqTimEShutL,
+	SeqTimExposureH,	SeqTimExposureL,
+	SeqTimFramePeriodH,	SeqTimFramePeriodL,
 };
 
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -271,6 +277,16 @@ enum SPB2Config {
 };
 typedef std::map<SPB2Config, std::string> SPB2ConfigStrMapType;
 extern SPB2ConfigStrMapType SPB2ConfigNameMap;
+
+struct SeqTimValues {
+	double readout_time;
+	double transfer_time;
+	double electronic_shutter_time;
+	double exposure_time;
+	double frame_period;
+};
+
+std::ostream& operator <<(std::ostream& os, const SeqTimValues& tm);
 
 } // namespace Frelon
 

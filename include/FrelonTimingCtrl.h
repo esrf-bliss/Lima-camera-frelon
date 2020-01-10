@@ -23,7 +23,6 @@
 #define FRELONTIMINGCTRL_H
 
 #include "FrelonModel.h"
-#include "FrelonSerialLine.h"
 
 namespace lima
 {
@@ -31,17 +30,47 @@ namespace lima
 namespace Frelon
 {
 
+class Camera;
+
 class TimingCtrl
 {
 	DEB_CLASS_NAMESPC(DebModCamera, "TimingCtrl", "Frelon");
 
  public:
-	TimingCtrl(Model& model, SerialLine& ser_line);
-	~TimingCtrl();
+	struct SeqTim {
+		typedef std::pair<Reg, Reg> RegPair;
+		typedef std::vector<RegPair> RegPairList;
+		typedef std::pair<int, int> ValPair;
+		typedef std::vector<ValPair> ValPairList;
+	
+		static RegPairList RegList;
+		static const double ClockPeriod;
+	
+		static SeqTimValues calcValues(const ValPairList& l);
+		static double calcSeqTim(const ValPair& v)
+		{
+			unsigned long v_first = v.first;
+			return ((v_first << 16) + v.second) * ClockPeriod;
+		}
+	};
 
- private:
+	TimingCtrl(Camera& cam);
+	virtual ~TimingCtrl();
+
+	void getReadoutTime(double& readout_time);
+	void getTransferTime(double& xfer_time);
+	void getDeadTime(double& dead_time);
+
+	void latchSeqTimValues(SeqTimValues& st);
+	void measureSeqTimValues(SeqTimValues& st, double timeout);
+
+ protected:
+	void writeRegister(Reg reg, int  val);
+	void readRegister (Reg reg, int& val);
+	void readFloatRegister(Reg reg, double& val);
+
+	Camera& m_cam;
 	Model& m_model;
-	SerialLine& m_ser_line;
 };
 
 

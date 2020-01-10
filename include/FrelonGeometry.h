@@ -56,7 +56,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
  public:
 	Geometry(Camera& cam);
-	~Geometry();
+	virtual ~Geometry();
 
 	void sync();
 
@@ -99,10 +99,6 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
 	std::string getSPB2ConfigName(SPB2Config spb2_config);
 
-	void getReadoutTime(double& readout_time);
-	void getTransferTime(double& xfer_time);
-	void getDeadTime(double& dead_time);
-
 	void deadTimeChanged();
 
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
@@ -115,7 +111,6 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
-	void readFloatRegister(Reg reg, double& val);
 	
 	int getModesAvail();
 
@@ -154,7 +149,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void processSetRoi(const Roi& req_roi, Roi& hw_roi, Roi& chan_roi, 
 			   Point& roi_offset);
 	void resetRoiBinOffset();
-	
+
 	Camera& m_cam;
 	Model& m_model;
 	Point m_chan_roi_offset;

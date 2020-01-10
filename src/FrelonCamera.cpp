@@ -25,16 +25,65 @@ using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
 
+Camera::TempRegVal::TempRegVal(Camera& cam, Reg r, int val)
+	: m_cam(cam), m_reg(r)
+{
+	m_cam.readRegister(m_reg, m_orig_val);
+	m_changed = (m_orig_val != val);
+	if (m_changed)
+		m_cam.writeRegister(m_reg, val);
+}
+
+Camera::TempRegVal::~TempRegVal()
+{
+	restore();
+}
+
+void Camera::TempRegVal::restore()
+{
+	if (m_changed) {
+		m_cam.writeRegister(m_reg, m_orig_val);
+		m_changed = false;
+	}
+}
+
+Camera::AcqSeq::AcqSeq(Camera& cam)
+	: m_cam(cam)
+{
+	Status status;
+	m_cam.getStatus(status);
+	if (status != Wait)
+		throw LIMA_EXC(Hardware, Error, "Camera is not idle");
+	m_cam.start();
+}
+
+Camera::AcqSeq::~AcqSeq()
+{
+	stop();
+}
+
+void Camera::AcqSeq::stop()
+{
+	m_cam.stop();
+}
+
+bool Camera::AcqSeq::wait(double timeout)
+{
+	Status status = Wait;
+	return m_cam.waitStatus(status, StatusMask, timeout);
+}
+
 const double Camera::ResetLinkWaitTime = 5;
 const double Camera::UpdateCcdStatusTime = 0.1;
 const double Camera::MaxIdleWaitTime = 2.5;
 const double Camera::MaxBusyRetryTime = 0.2;	// 16 Mpixel image Aurora Xfer
 
 Camera::Camera(Espia::SerialLine& espia_ser_line)
-	: m_ser_line(espia_ser_line), m_timing_ctrl(m_model, m_ser_line),
-	  m_geom(NULL)
+	: m_ser_line(espia_ser_line)
 {
 	DEB_CONSTRUCTOR();
+
+	m_timing_ctrl = new TimingCtrl(*this);
 
 	sync();
 }
@@ -321,11 +370,6 @@ void Camera::getComplexSerialNb(int& complex_ser_nb)
 Model& Camera::getModel()
 {
 	return m_model;
-}
-
-TimingCtrl& Camera::getTimingCtrl()
-{
-	return m_timing_ctrl;
 }
 
 string Camera::getInputChanModeName(FrameTransferMode ftm, 
@@ -623,19 +667,19 @@ void Camera::getUserLatTime(double& lat_time)
 void Camera::getReadoutTime(double& readout_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getReadoutTime(readout_time);
+	m_timing_ctrl->getReadoutTime(readout_time);
 }
 
 void Camera::getTransferTime(double& xfer_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getTransferTime(xfer_time);
+	m_timing_ctrl->getTransferTime(xfer_time);
 }
 
 void Camera::getDeadTime(double& dead_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getDeadTime(dead_time);
+	m_timing_ctrl->getDeadTime(dead_time);
 }
 
 void Camera::setTotalLatTime(double lat_time)
@@ -938,6 +982,18 @@ double Camera::getMaxIdleWaitTime()
 
 	DEB_RETURN() << DEB_VAR1(max_wait_time);
 	return max_wait_time;
+}
+
+void Camera::latchSeqTimValues(SeqTimValues& st)
+{
+	DEB_MEMBER_FUNCT();
+	m_timing_ctrl->latchSeqTimValues(st);
+}
+
+void Camera::measureSeqTimValues(SeqTimValues& st, double timeout)
+{
+	DEB_MEMBER_FUNCT();
+	m_timing_ctrl->measureSeqTimValues(st, timeout);
 }
 
 void Camera::registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb)

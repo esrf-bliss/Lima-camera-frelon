@@ -64,6 +64,7 @@ class Model
 		Taper, HamaChip,
 		ModesAvail, TimeCalc, HTDCmd, GoodHTD, ImagesPerEOF, CamChar,
 		SPB1, SPB2, SPB8,
+		SeqTim,
 	};
 
 	Model();

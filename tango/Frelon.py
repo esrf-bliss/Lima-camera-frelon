@@ -124,6 +124,22 @@ class Frelon(PyTango.Device_4Impl):
         edev.resetLink()
         time.sleep(self.ResetLinkWaitTime)
 
+    @Core.DEB_MEMBER_FUNCT
+    def latchSeqTimValues(self) :
+        cam = _FrelonAcq.getFrelonCamera()
+        tm = cam.latchSeqTimValues()
+        return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
+                tm.exposure_time, tm.frame_period]
+
+    @Core.DEB_MEMBER_FUNCT
+    def measureSeqTimValues(self, timeout) :
+        cam = _FrelonAcq.getFrelonCamera()
+        if timeout == 0:
+            timeout = 3
+        tm = cam.measureSeqTimValues(timeout)
+        return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
+                tm.exposure_time, tm.frame_period]
+
     ## @brief read the espia board id
     #
     def read_espia_dev_nb(self,attr) :
@@ -183,6 +199,14 @@ class FrelonClass(PyTango.DeviceClass):
         'resetLink':
         [[PyTango.DevVoid,""],
          [PyTango.DevVoid,""]],
+        'latchSeqTimValues':
+        [[PyTango.DevVoid,""],
+         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
+          "electronic_shutter_time, exposure_time, frame_period>"]],
+        'measureSeqTimValues':
+        [[PyTango.DevDouble,"timeout"],
+         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
+          "electronic_shutter_time, exposure_time, frame_period>"]],
         }
 
     attr_list = {

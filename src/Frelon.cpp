@@ -48,6 +48,9 @@ static const RegPair RegStrCList[] = {
 	RegPair(ShutEnable,	"U"),
 	RegPair(HardTrigDisable,"HTD"),
 
+	RegPair(NbLinesXfer,	"NLT"),
+	RegPair(ShutElecSelect,	"SES"),
+
 	RegPair(PixelFreq,	"P"),
 	RegPair(LineFreq,	"L"),
 
@@ -101,6 +104,18 @@ static const RegPair RegStrCList[] = {
 
 	RegPair(SeqClockFreq,	"FSC"),
 	RegPair(CamChar,	"CCH"),
+
+	RegPair(SeqTimRdOutH,		"SETA"),
+	RegPair(SeqTimRdOutL,		"SETB"),
+	RegPair(SeqTimTransferH,	"SETC"),
+	RegPair(SeqTimTransferL,	"SETD"),
+	RegPair(SeqTimEShutH,		"SETE"),
+	RegPair(SeqTimEShutL,		"SETF"),
+	RegPair(SeqTimExposureH,	"SETG"),
+	RegPair(SeqTimExposureL,	"SETH"),
+	RegPair(SeqTimFramePeriodH,	"SETI"),
+	RegPair(SeqTimFramePeriodL,	"SETJ"),
+
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -261,3 +276,16 @@ static const SPB2ConfigStrPair SPB2ConfigNameCList[] = {
 };
 SPB2ConfigStrMapType
 lima::Frelon::SPB2ConfigNameMap(C_LIST_ITERS(SPB2ConfigNameCList));
+
+std::ostream& lima::Frelon::operator <<(std::ostream& os,
+					const SeqTimValues& st)
+{
+	return os << "<"
+		  << "readout_time=" << st.readout_time << ", "
+		  << "transfer_time=" << st.transfer_time << ", "
+		  << "electronic_shutter_time=" << st.electronic_shutter_time
+		  << ", "
+		  << "exposure_time=" << st.exposure_time << ", "
+		  << "frame_period=" << st.frame_period << ", "
+		  << ">";
+}

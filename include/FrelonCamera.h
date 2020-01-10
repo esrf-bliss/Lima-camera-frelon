@@ -39,6 +39,30 @@ class Camera
 	DEB_CLASS_NAMESPC(DebModCamera, "Camera", "Frelon");
 
  public:
+	class TempRegVal
+	{
+	public:
+		TempRegVal(Camera& cam, Reg r, int val);
+		~TempRegVal();
+		void restore();
+	private:
+		Camera& m_cam;
+		Reg m_reg;
+		int m_orig_val;
+		bool m_changed;
+	};
+
+	class AcqSeq
+	{
+	public:
+		AcqSeq(Camera& cam);
+		~AcqSeq();
+		bool wait(double timeout);
+		void stop();
+	private:
+		Camera& m_cam;
+	};
+
 	Camera(Espia::SerialLine& espia_ser_line);
 	~Camera();
 
@@ -48,12 +72,12 @@ class Camera
 	void readRegister (Reg reg, int& val);
 	void readFloatRegister(Reg reg, double& val);
 
+	TempRegVal getTempRegVal(Reg reg, int val);
+
 	void hardReset();
 	void getVersionStr(std::string& ver);
 	void getComplexSerialNb(int& complex_ser_nb);
 	Model& getModel();
-
-	TimingCtrl& getTimingCtrl();
 
 	bool getDefInputChan(FrameTransferMode ftm, InputChan& input_chan);
 	void setInputChan(InputChan  input_chan);
@@ -130,6 +154,11 @@ class Camera
 	void stop();
 	bool isRunning();
 
+	AcqSeq startAcqSeq();
+
+	void latchSeqTimValues(SeqTimValues& st);
+	void measureSeqTimValues(SeqTimValues& st, double timeout);
+
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 
@@ -165,7 +194,7 @@ class Camera
 
 	SerialLine m_ser_line;
 	Model m_model;
-	TimingCtrl m_timing_ctrl;
+	AutoPtr<TimingCtrl> m_timing_ctrl;
 	AutoPtr<Geometry> m_geom;
 	TrigMode m_trig_mode;
 	int m_nb_frames;
@@ -186,6 +215,15 @@ inline bool Camera::waitIdleStatus(Status& status, bool use_ser_line,
 			  use_ser_line, read_spb);
 }
 
+inline Camera::TempRegVal Camera::getTempRegVal(Reg reg, int val)
+{
+	return TempRegVal(*this, reg, val);
+}
+
+inline Camera::AcqSeq Camera::startAcqSeq()
+{
+	return AcqSeq(*this);
+}
 
 } // namespace Frelon
 
