@@ -225,7 +225,7 @@ class BinCtrlObj : public HwBinCtrlObj
 	DEB_CLASS_NAMESPC(DebModCamera, "BinCtrlObj", "Frelon");
 
  public:
-	BinCtrlObj(Camera& cam);
+	BinCtrlObj(Espia::Acq& acq, Camera& cam);
 	virtual ~BinCtrlObj();
 
 	virtual void setBin(const Bin& bin);
@@ -236,6 +236,7 @@ class BinCtrlObj : public HwBinCtrlObj
 	void unregisterBinChangedCallback(BinChangedCallback& bin_chg_cb);
 
  private:
+	Espia::Acq& m_acq;
 	Camera& m_cam;
 	BinChangedCallback *m_bin_chg_cb;
 };

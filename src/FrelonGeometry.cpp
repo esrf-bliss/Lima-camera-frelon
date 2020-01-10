@@ -389,13 +389,8 @@ void Geometry::checkBin(Bin& bin)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
 
-	bool frelon16 = (isFrelon16());
-	int max_bin_x = frelon16 ? 1 : int(MaxBinX);
-	int max_bin_y = frelon16 ? 1 : int(MaxBinY);
-	int bin_x = min(bin.getX(), max_bin_x);
-	int bin_y = min(bin.getY(), max_bin_y);
-	bin = Bin(bin_x, bin_y);
-
+	BinTable& table = isFrelon16() ? Frelon16BinTable : Frelon2kBinTable;
+	bin = GetLargestBin(bin, table);
 	DEB_RETURN() << DEB_VAR1(bin);
 }
 
@@ -403,11 +398,13 @@ void Geometry::setBin(const Bin& bin)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
-	
-	if ((bin.getX() > MaxBinX) || (bin.getY() > MaxBinY))
+
+	Bin check = bin;
+	checkBin(check);
+	if (check != bin)
 		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(bin)
-					     << ". Max. HW binning is " 
-					     << Bin(MaxBinX, MaxBinY);
+					     << ". Max. HW binning is "
+					     << check;
 
 	Bin curr_bin;
 	getBin(curr_bin);

@@ -190,11 +190,6 @@ enum {
 	KodakModesAvail = 0x0100,
 };
 
-enum {
-	MaxBinX = 8,
-	MaxBinY = 1024,
-};
-
 enum ExtSync {
 	ExtSyncNone  = 0,
 	ExtSyncStart = 1,

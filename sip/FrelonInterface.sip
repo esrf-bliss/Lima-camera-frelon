@@ -182,7 +182,7 @@ class BinCtrlObj : HwBinCtrlObj
 %End
 
  public:
-	BinCtrlObj(Frelon::Camera& cam);
+	BinCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~BinCtrlObj();
 
 	virtual void setBin(const Bin& bin);

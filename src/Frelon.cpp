@@ -270,6 +270,21 @@ static const ChipSizePair ChipPixelSizeCList[] = {
 ChipPixelSizeMapType 
 lima::Frelon::ChipPixelSizeMap(C_LIST_ITERS(ChipPixelSizeCList));
 
+static const int Frelon2kBinXCList[] = {1, 2, 4, 8};
+static const int Frelon2kBinYCList[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
+					1024};
+BinTable lima::Frelon::Frelon2kBinTable = {
+	{C_LIST_ITERS(Frelon2kBinXCList)},
+	{C_LIST_ITERS(Frelon2kBinYCList)},
+};
+
+static const int Frelon16BinXCList[] = {1, 2, 3, 5};
+static const int Frelon16BinYCList[] = {1, 2, 3, 4, 5};
+BinTable lima::Frelon::Frelon16BinTable = {
+	{C_LIST_ITERS(Frelon16BinXCList)},
+	{C_LIST_ITERS(Frelon16BinYCList)},
+};
+
 typedef pair<SPB2Config, string> SPB2ConfigStrPair;
 static const SPB2ConfigStrPair SPB2ConfigNameCList[] = {
 	SPB2ConfigStrPair(SPB2Precision, "Precision"),

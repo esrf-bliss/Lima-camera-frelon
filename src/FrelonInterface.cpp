@@ -422,8 +422,8 @@ BinChangedCallback::~BinChangedCallback()
 		m_bin_ctrl_obj->unregisterBinChangedCallback(*this);
 }
 
-BinCtrlObj::BinCtrlObj(Camera& cam)
-	: m_cam(cam), m_bin_chg_cb(NULL)
+BinCtrlObj::BinCtrlObj(Espia::Acq& acq, Camera& cam)
+	: m_acq(acq), m_cam(cam), m_bin_chg_cb(NULL)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -439,6 +439,17 @@ void BinCtrlObj::setBin(const Bin& bin)
 {
 	DEB_MEMBER_FUNCT();
 	m_cam.setBin(bin);
+
+	Espia::SGImgConfig img_config;
+	Size prev_size;
+	m_acq.getSGImgConfig(img_config, prev_size);
+	FrameDim det_frame_dim;
+	m_cam.getFrameDim(det_frame_dim);
+	Size new_size =  det_frame_dim.getSize() / bin;
+	if (new_size != prev_size) {
+		m_acq.bufferFree();
+		m_acq.setSGImgConfig(img_config, new_size);
+	}
 
 	if (m_bin_chg_cb) {
 		DEB_TRACE() << "Firing change callback";
@@ -806,7 +817,7 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
 	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam), 
-	  m_bin(cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam),
+	  m_bin(acq, cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam),
 	  m_acq_end_cb(cam), m_event_cb(m_event)
 {
 	DEB_CONSTRUCTOR();

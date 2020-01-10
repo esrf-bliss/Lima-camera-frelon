@@ -186,10 +186,26 @@ enum {
 	KodakModesAvail = 0x0100,
 };
 
-enum {
-	MaxBinX = 8,
-	MaxBinY = 1024,
-};
+typedef std::vector<int> BinList;
+typedef BinList BinTable[2];
+extern BinTable Frelon2kBinTable;
+extern BinTable Frelon16BinTable;
+
+inline int GetLargestDivFromList(int x, const BinList l)
+{
+	BinList::const_reverse_iterator it, end = l.rend();
+	for (it = l.rbegin(); it != end; ++it) {
+		if ((x % *it) == 0)
+			return *it;
+	}
+	throw LIMA_EXC(Hardware, Error, "Invalid div list");
+}
+
+inline Bin GetLargestBin(Bin bin, const BinTable& table)
+{
+	return Bin(GetLargestDivFromList(bin.getX(), table[0]),
+		   GetLargestDivFromList(bin.getY(), table[1]));
+}
 
 enum ExtSync {
 	ExtSyncNone  = 0,
