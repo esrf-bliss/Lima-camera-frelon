@@ -282,11 +282,11 @@ class FrelonTacoProxy:
 
     @Core.DEB_MEMBER_FUNCT
     def DevCcdSetChannel(self, input_chan):
-        _FrelonAcq.setInputChan(input_chan)
+        _FrelonAcq.getFrelonCamera().setInputChan(input_chan)
     
     @Core.DEB_MEMBER_FUNCT
     def DevCcdGetChannel(self):
-        return _FrelonAcq.getInputChan()
+        return _FrelonAcq.getFrelonCamera().getInputChan()
     
     @Core.DEB_MEMBER_FUNCT
     def DevCcdSetHwPar(self, hw_par_str):
@@ -337,11 +337,11 @@ class FrelonTacoProxy:
             ftm = FrelonHw.FTM
         else:
             raise Core.Exception('Invalid profile value: %s' % kinetics)
-        _FrelonAcq.setFrameTransferMode(ftm)
+        _FrelonAcq.getFrelonCamera().setFrameTransferMode(ftm)
         
     @Core.DEB_MEMBER_FUNCT
     def DevCcdGetKinetics(self):
-        ftm = _FrelonAcq.getFrameTransferMode()
+        ftm = _FrelonAcq.getFrelonCamera().getFrameTransferMode()
         if ftm == FrelonHw.FTM:
             kinetics = 3
         else:
