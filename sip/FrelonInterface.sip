@@ -241,7 +241,7 @@ class FlipCtrlObj : HwFlipCtrlObj
 %End
 
  public:
-	FlipCtrlObj(Frelon::Camera& cam);
+	FlipCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~FlipCtrlObj();
 
 	virtual void setFlip(const Flip& flip);

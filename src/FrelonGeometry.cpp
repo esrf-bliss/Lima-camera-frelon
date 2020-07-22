@@ -355,12 +355,7 @@ void Geometry::checkFlip(Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(flip);
-	if (isFrelon16()) {
-		DEB_TRACE() << "No flip is supported";
-		flip = Flip(false);
-	} else {
-		DEB_TRACE() << "All standard flip modes are supported";
-	}
+	DEB_TRACE() << "All standard flip modes are supported";
 	DEB_RETURN() << DEB_VAR1(flip);
 }
 

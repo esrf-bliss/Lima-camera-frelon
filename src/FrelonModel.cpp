@@ -403,6 +403,14 @@ GeomType Model::getGeomType()
 	return geom_type;
 }
 
+bool Model::isFrelon16Dual()
+{
+	DEB_MEMBER_FUNCT();
+	bool is_dual = (getGeomType() == SPB8_F16_Dual);
+	DEB_RETURN() << DEB_VAR1(is_dual);
+	return is_dual;
+}
+
 double Model::getPixelSize()
 {
 	DEB_MEMBER_FUNCT();

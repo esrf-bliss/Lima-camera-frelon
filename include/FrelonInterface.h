@@ -301,7 +301,7 @@ class FlipCtrlObj : public HwFlipCtrlObj
 	DEB_CLASS_NAMESPC(DebModCamera, "FlipCtrlObj", "Frelon");
 
  public:
-	FlipCtrlObj(Camera& cam);
+	FlipCtrlObj(Espia::Acq& acq, Camera& cam);
 	virtual ~FlipCtrlObj();
 
 	virtual void setFlip(const Flip& flip);
@@ -309,6 +309,7 @@ class FlipCtrlObj : public HwFlipCtrlObj
 	virtual void checkFlip(Flip& flip);
 
  private:
+	Espia::Acq& m_acq;
 	Camera& m_cam;
 };
 

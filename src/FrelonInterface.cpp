@@ -445,11 +445,9 @@ void BinCtrlObj::setBin(const Bin& bin)
 	m_acq.getSGImgConfig(img_config, prev_size);
 	FrameDim det_frame_dim;
 	m_cam.getFrameDim(det_frame_dim);
-	Size new_size =  det_frame_dim.getSize() / bin;
-	if (new_size != prev_size) {
-		m_acq.bufferFree();
+	Size new_size = det_frame_dim.getSize() / bin;
+	if (new_size != prev_size)
 		m_acq.setSGImgConfig(img_config, new_size);
-	}
 
 	if (m_bin_chg_cb) {
 		DEB_TRACE() << "Firing change callback";
@@ -640,8 +638,8 @@ void RoiCtrlObj::unregisterRoiChangedCallback(RoiChangedCallback& roi_chg_cb)
  * \brief FlipCtrlObj constructor
  *******************************************************************/
 
-FlipCtrlObj::FlipCtrlObj(Camera& cam)
-	: m_cam(cam)
+FlipCtrlObj::FlipCtrlObj(Espia::Acq& acq, Camera& cam)
+	: m_acq(acq), m_cam(cam)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -654,7 +652,19 @@ FlipCtrlObj::~FlipCtrlObj()
 void FlipCtrlObj::setFlip(const Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
+
 	m_cam.setFlip(flip);
+	if (!m_cam.getModel().isFrelon16Dual())
+		return;
+
+	Espia::SGImgConfig img_config = (flip.y ? Espia::SGImgConcatVertInv2 :
+						  Espia::SGImgConcatVert2);
+	FrameDim det_frame_dim;
+	m_cam.getFrameDim(det_frame_dim);
+	Bin bin;
+	m_cam.getBin(bin);
+	det_frame_dim /= bin;
+	m_acq.setSGImgConfig(img_config, det_frame_dim.getSize());
 }
 
 void FlipCtrlObj::getFlip(Flip& flip)
@@ -817,12 +827,12 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
 	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam), 
-	  m_bin(acq, cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam),
+	  m_bin(acq, cam), m_roi(acq, cam), m_flip(acq, cam), m_shutter(cam),
 	  m_acq_end_cb(cam), m_event_cb(m_event)
 {
 	DEB_CONSTRUCTOR();
 
-	bool f16_dual = (m_cam.getModel().getGeomType() == SPB8_F16_Dual);
+	bool f16_dual = m_cam.getModel().isFrelon16Dual();
 	if (f16_dual != m_acq.getDev().isMeta())
 		THROW_HW_ERROR(Error) << "Frelon16 2xSPB8 / Espia mismatch";
 	Espia::SGImgConfig img_config = (f16_dual ? Espia::SGImgConcatVert2 :

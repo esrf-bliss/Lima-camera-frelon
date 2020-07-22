@@ -140,6 +140,7 @@ class Model
 	ChipType getChipType();
 	SPBConType getSPBConType();
 	GeomType getGeomType();
+	bool isFrelon16Dual();
 	bool has(Feature feature);
 	double getPixelSize();
 
