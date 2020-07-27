@@ -905,7 +905,7 @@ void Interface::resetDefaults()
 
 	stopAcq();
 
-	bool f16 = (m_cam.getModel().getChipType() == Andanta_CcdFT2k);
+	bool f16 = m_cam.getModel().isFrelon16();
 	FrameTransferMode ftm_seq[2] = {!f16 ? FFM : FTM, !f16 ? FTM : FFM};
 	FrameTransferMode ftm;
 	InputChan input_chan;

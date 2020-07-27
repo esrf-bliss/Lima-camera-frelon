@@ -407,6 +407,14 @@ GeomType Model::getGeomType()
 	return geom_type;
 }
 
+bool Model::isFrelon16()
+{
+	DEB_MEMBER_FUNCT();
+	bool f16 = (getChipType() == Andanta_CcdFT2k);
+	DEB_RETURN() << DEB_VAR1(f16);
+	return f16;
+}
+
 bool Model::isFrelon16Dual()
 {
 	DEB_MEMBER_FUNCT();

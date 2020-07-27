@@ -90,6 +90,7 @@ class Model
 	Frelon::ChipType getChipType();
 	Frelon::SPBConType getSPBConType();
 	Frelon::GeomType getGeomType();
+	bool isFrelon16();
 	bool isFrelon16Dual();
 	bool has(Model::Feature feature);
 	double getPixelSize();

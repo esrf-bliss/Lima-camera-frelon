@@ -166,7 +166,7 @@ inline bool Geometry::isChanActive(InputChan curr, InputChan chan)
 
 inline bool Geometry::isFrelon16()
 {
-	return (m_model.getChipType() == Andanta_CcdFT2k);
+	return m_model.isFrelon16();
 }
 
 
