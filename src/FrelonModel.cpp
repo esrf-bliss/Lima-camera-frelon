@@ -203,6 +203,10 @@ void Model::setF16ForceSingle(bool f16_force_single)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(f16_force_single);
 
+	if (f16_force_single && !m_f16_force_single)
+		DEB_ALWAYS() << "Forcing Frelon16 single-SPB8 mode";
+	else if (!f16_force_single && m_f16_force_single)
+		DEB_ALWAYS() << "Disabling Frelon16 single-SPB8 mode";
 	m_f16_force_single = f16_force_single;
 	update();
 }
