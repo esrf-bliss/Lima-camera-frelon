@@ -1010,8 +1010,13 @@ void Interface::getStatus(StatusType& status)
 
 	TrigMode trig_mode;
 	m_cam.getTrigMode(trig_mode);
-	if ((trig_mode == IntTrigMult) && (status.det == DetWaitForTrigger))
-		status.det = DetIdle;
+	if (trig_mode == IntTrigMult) {
+		// temporary patch until det status is properly managed in core
+		if (status.det & DetWaitForTrigger)
+			status.det = DetIdle;
+		else if (status.det == DetIdle)
+			status.det = DetExposure;
+	}
 
 	DEB_RETURN() << DEB_VAR1(status);
 }
