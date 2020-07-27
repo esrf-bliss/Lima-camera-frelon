@@ -586,7 +586,8 @@ void RoiCtrlObj::checkEspiaRoi(const Roi& set_roi, Roi& hw_roi,
 
 	det_frame_size = hw_roi.getSize();
 
-	bool sg_roi = (!set_roi.isEmpty() && (hw_roi != set_roi));
+	bool f16_dual = m_cam.getModel().isFrelon16Dual();
+	bool sg_roi = (!f16_dual && !set_roi.isEmpty() && (hw_roi != set_roi));
 	if (sg_roi) {
 		espia_roi = hw_roi.subRoiAbs2Rel(set_roi);
 		int width = set_roi.getSize().getWidth();
@@ -659,12 +660,19 @@ void FlipCtrlObj::setFlip(const Flip& flip)
 
 	Espia::SGImgConfig img_config = (flip.y ? Espia::SGImgConcatVertInv2 :
 						  Espia::SGImgConcatVert2);
-	FrameDim det_frame_dim;
-	m_cam.getFrameDim(det_frame_dim);
-	Bin bin;
-	m_cam.getBin(bin);
-	det_frame_dim /= bin;
-	m_acq.setSGImgConfig(img_config, det_frame_dim.getSize());
+	Size det_size;
+	Roi roi;
+	m_cam.getRoi(roi);
+	if (roi.isActive()) {
+		det_size = roi.getSize();
+	} else {
+		FrameDim det_frame_dim;
+		m_cam.getFrameDim(det_frame_dim);
+		Bin bin;
+		m_cam.getBin(bin);
+		det_size = det_frame_dim.getSize() / bin;
+	}
+	m_acq.setSGImgConfig(img_config, det_size);
 }
 
 void FlipCtrlObj::getFlip(Flip& flip)

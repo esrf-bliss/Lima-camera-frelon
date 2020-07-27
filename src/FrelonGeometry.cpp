@@ -475,13 +475,18 @@ Flip Geometry::getMirror()
 {
 	DEB_MEMBER_FUNCT();
 
-	InputChan curr;
-	getInputChan(curr);
 	Flip mirror;
-	mirror.x = isChanActive(curr, Chan12) || isChanActive(curr, Chan34);
-	mirror.y = isChanActive(curr, Chan13) || isChanActive(curr, Chan24);
-	if (isFrelon16())
-		mirror = Flip(false);
+	if (isFrelon16()) {
+		mirror.x = false;
+		mirror.y = (m_model.getSPBConType() == SPBConXY);
+	} else {
+		InputChan curr;
+		getInputChan(curr);
+		mirror.x = (isChanActive(curr, Chan12) ||
+			    isChanActive(curr, Chan34));
+		mirror.y = (isChanActive(curr, Chan13) ||
+			    isChanActive(curr, Chan24));
+	}
 	DEB_RETURN() << DEB_VAR1(mirror);
 	return mirror;
 }
@@ -532,11 +537,16 @@ void Geometry::xformChanCoords(const Point& point, Point& xform_point,
 	Flip mirror = getMirror();
 	Size chan_size = getChanSize();
 
-	InputChan curr;
-	getInputChan(curr);
-	bool right  = !isChanActive(curr, Chan1) && !isChanActive(curr, Chan3);
-	bool bottom = !isChanActive(curr, Chan1) && !isChanActive(curr, Chan2);
-	Flip readout_flip(right, bottom);
+	Flip readout_flip(false);
+	if (!isFrelon16()) {
+		InputChan curr;
+		getInputChan(curr);
+		bool right  = (!isChanActive(curr, Chan1) &&
+			       !isChanActive(curr, Chan3));
+		bool bottom = (!isChanActive(curr, Chan1) &&
+			       !isChanActive(curr, Chan2));
+		readout_flip = Flip(right, bottom);
+	}
 	DEB_TRACE() << DEB_VAR2(chan_flip, readout_flip);
 
 	Flip effect_flip = chan_flip & readout_flip;
@@ -713,8 +723,21 @@ void Geometry::processSetRoi(const Roi& set_roi, Roi& hw_roi,
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(set_roi);
 
-	Roi aligned_roi = set_roi;
-	aligned_roi.alignCornersTo(Point(32, 1), Ceil);
+	Roi aligned_roi;
+	if (isFrelon16()) {
+		// no horizontal roi in Frelon16
+		Point top_left(0, set_roi.getTopLeft().y);
+		FrameDim frame_dim;
+		getFrameDim(frame_dim);
+		Bin bin;
+		getBin(bin);
+		Size size(frame_dim.getSize().getWidth() / bin.getX(),
+			  set_roi.getSize().getHeight());
+		aligned_roi = Roi(top_left, size);
+	} else {
+		aligned_roi = set_roi;
+		aligned_roi.alignCornersTo(Point(32, 1), Ceil);
+	}
 	Flip roi_inside_mirror;
 	calcChanRoi(aligned_roi, chan_roi, roi_inside_mirror);
 	Roi image_roi;
