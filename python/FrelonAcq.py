@@ -25,6 +25,8 @@ from Lima import Espia
 from limafrelon import *
 from processlib import Tasks
 
+EspiaDevNbInvalid = 256
+
 class FrelonAcq:
 
     DEB_CLASS(DebModApplication, 'FrelonAcq')
@@ -123,6 +125,12 @@ class FrelonAcq:
         espia_dev_nb2 = kws.get('espia_dev_nb2', None)
         if len(args) > 0:
             espia_dev_nb2 = args[0]
+        req_lib_dbg_lvl = kws.get('espia_lib_debug_level', -1)
+        if len(args) > 1:
+            req_lib_dbg_lvl = args[1]
+        req_drv_dbg_lvl = kws.get('espia_drv_debug_level', -1)
+        if len(args) > 2:
+            req_drv_dbg_lvl = args[2]
 
         self.m_cam_inited    = False
 
@@ -134,6 +142,13 @@ class FrelonAcq:
         self.m_bpm_task      = Tasks.BpmTask(self.m_bpm_mgr)
 
         self.m_ser_edev      = Espia.Dev(espia_dev_nb)
+        lib_dbg_lvl, drv_dbg_lvl = self.m_ser_edev.getDebugLevels()
+        if req_lib_dbg_lvl >= 0:
+            lib_dbg_lvl = req_lib_dbg_lvl
+        if req_drv_dbg_lvl >= 0:
+            drv_dbg_lvl = req_drv_dbg_lvl
+        self.m_ser_edev.setDebugLevels(lib_dbg_lvl, drv_dbg_lvl)
+
         self.m_eserline      = Espia.SerialLine(self.m_ser_edev)
         self.m_cam           = Frelon.Camera(self.m_eserline)
 
@@ -141,7 +156,7 @@ class FrelonAcq:
         model = self.m_cam.getModel()
         f16 = (model.getChipType() == Frelon.Andanta_CcdFT2k)
         if f16:
-            if espia_dev_nb2 is not None:
+            if espia_dev_nb2 not in [None, EspiaDevNbInvalid]:
                 self.m_acq_edev  = Espia.Meta([espia_dev_nb, espia_dev_nb2])
             else:
                 model.setF16ForceSingle(True);

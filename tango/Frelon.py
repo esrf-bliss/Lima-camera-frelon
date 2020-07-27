@@ -154,6 +154,28 @@ class Frelon(PyTango.Device_4Impl):
             espia_dev_nb2 = self.espia_dev_nb2
         attr.set_value(espia_dev_nb2)
 
+    def read_espia_lib_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        attr.set_value(lib_deb_lvl)
+
+    def write_espia_lib_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        lib_deb_lvl = attr.get_write_value()
+        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
+
+    def read_espia_drv_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        attr.set_value(drv_deb_lvl)
+
+    def write_espia_drv_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        drv_deb_lvl = attr.get_write_value()
+        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
+
     def read_roi_bin_offset(self,attr) :
         cam = _FrelonAcq.getFrelonCamera()
         roi_bin_offset = cam.getRoiBinOffset()
@@ -187,6 +209,12 @@ class FrelonClass(PyTango.DeviceClass):
         'espia_dev_nb2':
         [PyTango.DevShort,
          "Second Espia board device number",[EspiaDevNbInvalid]],
+        'espia_lib_debug_level':
+        [PyTango.DevLong,
+         "Espia library debug level",[-1]],
+        'espia_drv_debug_level':
+        [PyTango.DevLong,
+         "Espia driver debug level",[-1]],
         }
 
     cmd_list = {
@@ -218,6 +246,14 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevShort,
           PyTango.SCALAR,
           PyTango.READ]],
+        'espia_lib_debug_level':
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
+        'espia_drv_debug_level':
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
         'image_mode' :
         [[PyTango.DevString,
           PyTango.SCALAR,
@@ -486,10 +522,14 @@ FrelonTacoProxyCont = [FrelonTacoProxy()]
 #----------------------------------------------------------------------------
 _FrelonAcq = None
 
-def get_control(espia_dev_nb = 0, espia_dev_nb2 = EspiaDevNbInvalid, **keys) :
+def get_control(espia_dev_nb = 0, espia_dev_nb2 = EspiaDevNbInvalid,
+                espia_lib_debug_level = -1, espia_drv_debug_level = -1,
+                **keys) :
     global _FrelonAcq
     if _FrelonAcq is None:
-       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb), int(espia_dev_nb2))
+       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb), int(espia_dev_nb2),
+                                       int(espia_lib_debug_level),
+                                       int(espia_drv_debug_level))
     return _FrelonAcq.getGlobalControl() 
 
 def get_tango_specific_class_n_device():
