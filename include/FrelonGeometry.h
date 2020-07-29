@@ -104,6 +104,11 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 
+	Flip  getMirror();
+	Point getNbChan();
+	Size  getCcdSize();
+	Size  getChanSize();
+
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
 
@@ -126,11 +131,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void setFlipMode(int  flip_mode);
 	void getFlipMode(int& flip_mode);
 
-	Flip  getMirror();
-	Point getNbChan();
-	Size  getCcdSize();
-	Size  getChanSize();
-        Flip  getRoiInsideMirror();
+        Flip getRoiInsideMirror();
 
 	void writeChanRoi(const Roi& chan_roi);
 	void readChanRoi(Roi& chan_roi);

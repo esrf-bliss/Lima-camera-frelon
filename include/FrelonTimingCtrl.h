@@ -54,6 +54,17 @@ class TimingCtrl
 		}
 	};
 
+	struct Config {
+		int config_hd;
+		int bin_vert;
+		int chan_mode;
+		int nb_lines_xfer;
+		int roi_enable, roi_fast, roi_kinetic;
+		int roi_line_begin, roi_line_width;
+		int shut_elec_select;
+	};
+	typedef std::map<Config, SeqTimValues> ConfigTimingMeasureMap;
+
 	TimingCtrl(Camera& cam);
 	virtual ~TimingCtrl();
 
@@ -61,17 +72,24 @@ class TimingCtrl
 	void getTransferTime(double& xfer_time);
 	void getDeadTime(double& dead_time);
 
+	bool needSeqTimMeasure();
 	void latchSeqTimValues(SeqTimValues& st);
-	void measureSeqTimValues(SeqTimValues& st, double timeout);
+	void measureSeqTimValues(SeqTimValues& st, double timeout = -1);
 
  protected:
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
 	void readFloatRegister(Reg reg, double& val);
 
+	Config getConfig();
+	
 	Camera& m_cam;
 	Model& m_model;
+	ConfigTimingMeasureMap m_timing_measure_cache;
 };
+
+std::ostream& operator <<(std::ostream& os, const TimingCtrl::Config& config);
+bool operator <(const TimingCtrl::Config& a, const TimingCtrl::Config& b);
 
 
 } // namespace Frelon

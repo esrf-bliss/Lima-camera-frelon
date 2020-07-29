@@ -936,7 +936,7 @@ void Interface::resetDefaults()
 	m_cam.setRoiBinOffset(Point(0));
 	m_bin.setBin(Bin(1));
 	m_roi.setRoi(Roi());
-	
+
 	Size image_size;
 	m_det_info.getMaxImageSize(image_size);
 	ImageType image_type;
@@ -951,6 +951,7 @@ void Interface::resetDefaults()
 void Interface::prepareAcq()
 {
 	DEB_MEMBER_FUNCT();
+	m_cam.prepare();
 }
 
 void Interface::startAcq()

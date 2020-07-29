@@ -197,6 +197,22 @@ class Frelon(PyTango.Device_4Impl):
         reset_trace_log = ser_line.getResetTraceLog()
         attr.set_value(reset_trace_log)
 
+    def read_readout_time(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        if cam.needSeqTimMeasure():
+            raise Core.Exception('Camera needs SeqTim measurement')
+        attr.set_value(cam.getReadoutTime())
+
+    def read_transfer_time(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        if cam.needSeqTimMeasure():
+            raise Core.Exception('Camera needs SeqTim measurement')
+        attr.set_value(cam.getTransferTime())
+
+    def read_need_seq_tim_measure(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        attr.set_value(cam.needSeqTimMeasure())
+
 
 class FrelonClass(PyTango.DeviceClass):
 
@@ -290,6 +306,14 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevFloat,
           PyTango.SCALAR,
           PyTango.READ]],
+        'need_seq_tim_measure' :
+        [[PyTango.DevBoolean,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'auto_seq_tim_measure' :
+        [[PyTango.DevBoolean,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
         'image_count' :
         [[PyTango.DevLong,
           PyTango.SCALAR,

@@ -57,7 +57,8 @@ class Camera
 	public:
 		AcqSeq(Camera& cam);
 		~AcqSeq();
-		bool wait(double timeout);
+		bool wait(double timeout,
+			  bool use_ser_line=false, bool read_spb=false);
 		void stop();
 	private:
 		Camera& m_cam;
@@ -151,14 +152,18 @@ class Camera
 	void getImageCount(unsigned int& img_count, bool only_lsw=false);
 	void getMissingExtStartPulses(int& missing_pulses);
 
+	void prepare();
 	void start();
 	void stop();
 	bool isRunning();
 
 	AcqSeq startAcqSeq();
 
+	bool needSeqTimMeasure();
 	void latchSeqTimValues(SeqTimValues& st);
-	void measureSeqTimValues(SeqTimValues& st, double timeout);
+	void measureSeqTimValues(SeqTimValues& st, double timeout = -1);
+	void setAutoSeqTimMeasure(bool  auto_measure);
+	void getAutoSeqTimMeasure(bool& auto_measure);
 
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
@@ -167,12 +172,15 @@ class Camera
 	void unregisterMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
 
  private:
+	friend class TimingCtrl;
+
 	static const double ResetLinkWaitTime;
 	static const double UpdateCcdStatusTime;
 	static const double MaxIdleWaitTime;
 	static const double MaxBusyRetryTime;
 
 	Espia::Dev& getEspiaDev();
+	Geometry& getGeometry();
 
 	void sync();
 	void syncRegs();
@@ -195,6 +203,7 @@ class Camera
 
 	SerialLine m_ser_line;
 	Model m_model;
+	bool m_auto_seq_tim_measure;
 	AutoPtr<TimingCtrl> m_timing_ctrl;
 	AutoPtr<Geometry> m_geom;
 	TrigMode m_trig_mode;
