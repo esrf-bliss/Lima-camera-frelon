@@ -238,9 +238,12 @@ void TimingCtrl::measureSeqTimValues(SeqTimValues& st, double timeout)
 	Camera::TempRegVal u = m_cam.getTempRegVal(ShutEnable, 0);
 
 	Camera::AcqSeq acq = m_cam.startAcqSeq();
-	if (!acq.wait(timeout, true, true))
+	if (!acq.wait(timeout))
 		THROW_HW_ERROR(Error) << "Camera not ready after "
 				      << timeout << " sec";
+	// Image xfer to Espia can take up to ~40 ms
+	// Camera will be ready to restore original sequencer config after
+	// reading (10) SeqTim registers, which takes ~110 ms
 	latchSeqTimValues(st);
 
 	DEB_TRACE() << DEB_VAR2(config, st);
