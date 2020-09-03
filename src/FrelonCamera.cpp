@@ -786,8 +786,6 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb)
 		THROW_HW_ERROR(NotSupported) << "SPB2/ser. line status "
 			"not supported: must upgrade to good HTD firmware";
 
-	int spb_status = read_spb ? getSPBStatus() : 0;
-	
 	int ccd_status;
 	if (use_ser_line) {
 		readRegister(StatusSeqA, ccd_status);
@@ -796,6 +794,7 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb)
 		dev.getCcdStatus(ccd_status);
 	}
 
+	int spb_status = read_spb ? getSPBStatus() : 0;
 	ccd_status |= spb_status;
 
 	status = Status(ccd_status);
