@@ -23,6 +23,7 @@ requirements:
     - lima-common-espia
   build:
     - cmake
+    - make
     - {{ compiler('cxx') }}
   run:
     - python
