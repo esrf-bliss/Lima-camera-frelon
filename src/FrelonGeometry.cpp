@@ -67,11 +67,6 @@ void Geometry::readRegister(Reg reg, int& val)
 	m_cam.readRegister(reg, val);
 }
 
-void Geometry::readFloatRegister(Reg reg, double& val)
-{
-	m_cam.readFloatRegister(reg, val);
-}
-
 void Geometry::sync()
 {
 	DEB_MEMBER_FUNCT();
@@ -323,9 +318,7 @@ void Geometry::getMaxFrameDim(FrameDim& max_frame_dim)
 	max_frame_dim = ChipMaxFrameDimMap[chip_type];
 
 	GeomType geom_type = m_model.getGeomType();
-	if (geom_type == SPB2_F16)
-		max_frame_dim /= Point(2, 2);
-	else if (geom_type == SPB8_F16_Single)
+	if (geom_type == SPB8_F16_Single)
 		max_frame_dim /= Point(1, 2);
 
 	DEB_RETURN() << DEB_VAR1(max_frame_dim);
@@ -362,12 +355,7 @@ void Geometry::checkFlip(Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(flip);
-	if (isFrelon16()) {
-		DEB_TRACE() << "No flip is supported";
-		flip = Flip(false);
-	} else {
-		DEB_TRACE() << "All standard flip modes are supported";
-	}
+	DEB_TRACE() << "All standard flip modes are supported";
 	DEB_RETURN() << DEB_VAR1(flip);
 }
 
@@ -396,13 +384,8 @@ void Geometry::checkBin(Bin& bin)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
 
-	bool frelon16 = (isFrelon16());
-	int max_bin_x = frelon16 ? 1 : int(MaxBinX);
-	int max_bin_y = frelon16 ? 1 : int(MaxBinY);
-	int bin_x = min(bin.getX(), max_bin_x);
-	int bin_y = min(bin.getY(), max_bin_y);
-	bin = Bin(bin_x, bin_y);
-
+	BinTable& table = isFrelon16() ? Frelon16BinTable : Frelon2kBinTable;
+	bin = GetLargestBin(bin, table);
 	DEB_RETURN() << DEB_VAR1(bin);
 }
 
@@ -410,11 +393,13 @@ void Geometry::setBin(const Bin& bin)
 {
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(bin);
-	
-	if ((bin.getX() > MaxBinX) || (bin.getY() > MaxBinY))
+
+	Bin check = bin;
+	checkBin(check);
+	if (check != bin)
 		THROW_HW_ERROR(InvalidValue) << "Invalid " << DEB_VAR1(bin)
-					     << ". Max. HW binning is " 
-					     << Bin(MaxBinX, MaxBinY);
+					     << ". Max. HW binning is "
+					     << check;
 
 	Bin curr_bin;
 	getBin(curr_bin);
@@ -490,13 +475,18 @@ Flip Geometry::getMirror()
 {
 	DEB_MEMBER_FUNCT();
 
-	InputChan curr;
-	getInputChan(curr);
 	Flip mirror;
-	mirror.x = isChanActive(curr, Chan12) || isChanActive(curr, Chan34);
-	mirror.y = isChanActive(curr, Chan13) || isChanActive(curr, Chan24);
-	if (isFrelon16())
-		mirror = Flip(false);
+	if (isFrelon16()) {
+		mirror.x = false;
+		mirror.y = (m_model.getSPBConType() == SPBConXY);
+	} else {
+		InputChan curr;
+		getInputChan(curr);
+		mirror.x = (isChanActive(curr, Chan12) ||
+			    isChanActive(curr, Chan34));
+		mirror.y = (isChanActive(curr, Chan13) ||
+			    isChanActive(curr, Chan24));
+	}
 	DEB_RETURN() << DEB_VAR1(mirror);
 	return mirror;
 }
@@ -547,11 +537,16 @@ void Geometry::xformChanCoords(const Point& point, Point& xform_point,
 	Flip mirror = getMirror();
 	Size chan_size = getChanSize();
 
-	InputChan curr;
-	getInputChan(curr);
-	bool right  = !isChanActive(curr, Chan1) && !isChanActive(curr, Chan3);
-	bool bottom = !isChanActive(curr, Chan1) && !isChanActive(curr, Chan2);
-	Flip readout_flip(right, bottom);
+	Flip readout_flip(false);
+	if (!isFrelon16()) {
+		InputChan curr;
+		getInputChan(curr);
+		bool right  = (!isChanActive(curr, Chan1) &&
+			       !isChanActive(curr, Chan3));
+		bool bottom = (!isChanActive(curr, Chan1) &&
+			       !isChanActive(curr, Chan2));
+		readout_flip = Flip(right, bottom);
+	}
 	DEB_TRACE() << DEB_VAR2(chan_flip, readout_flip);
 
 	Flip effect_flip = chan_flip & readout_flip;
@@ -728,8 +723,21 @@ void Geometry::processSetRoi(const Roi& set_roi, Roi& hw_roi,
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(set_roi);
 
-	Roi aligned_roi = set_roi;
-	aligned_roi.alignCornersTo(Point(32, 1), Ceil);
+	Roi aligned_roi;
+	if (isFrelon16()) {
+		// no horizontal roi in Frelon16
+		Point top_left(0, set_roi.getTopLeft().y);
+		FrameDim frame_dim;
+		getFrameDim(frame_dim);
+		Bin bin;
+		getBin(bin);
+		Size size(frame_dim.getSize().getWidth() / bin.getX(),
+			  set_roi.getSize().getHeight());
+		aligned_roi = Roi(top_left, size);
+	} else {
+		aligned_roi = set_roi;
+		aligned_roi.alignCornersTo(Point(32, 1), Ceil);
+	}
 	Flip roi_inside_mirror;
 	calcChanRoi(aligned_roi, chan_roi, roi_inside_mirror);
 	Roi image_roi;
@@ -929,47 +937,6 @@ void Geometry::resetRoiBinOffset()
 	}
 }
 
-void Geometry::getReadoutTime(double& readout_time)
-{
-	DEB_MEMBER_FUNCT();
-	if (!m_model.has(Model::TimeCalc))
-		THROW_HW_ERROR(NotSupported) << "Camera does not have "
-					     << "readout time calculation";
-
-	if (isFrelon16()) {
-		readout_time = 100e-3;
-	} else {
-		readFloatRegister(ReadoutTime, readout_time);
-		readout_time *= 1e-6;
-	}
-	DEB_RETURN() << DEB_VAR1(readout_time);
-}
-
-void Geometry::getTransferTime(double& xfer_time)
-{
-	DEB_MEMBER_FUNCT();
-	if (!m_model.has(Model::TimeCalc))
-		THROW_HW_ERROR(NotSupported) << "Camera does not have "
-					     << "shift time calculation";
-
-	if (isFrelon16()) {
-		xfer_time = 100e-3;
-	} else {
-		readFloatRegister(TransferTime, xfer_time);
-		xfer_time *= 1e-6;
-	}
-	DEB_RETURN() << DEB_VAR1(xfer_time);
-}
-
-void Geometry::getDeadTime(double& dead_time)
-{
-	DEB_MEMBER_FUNCT();
-	getTransferTime(dead_time);
-	if (dead_time == 0)
-		getReadoutTime(dead_time);
-	DEB_RETURN() << DEB_VAR1(dead_time);
-}
-
 void Geometry::setSPB2Config(SPB2Config spb2_config)
 {
 	DEB_MEMBER_FUNCT();
@@ -1040,7 +1007,7 @@ void Geometry::deadTimeChanged()
 	DEB_MEMBER_FUNCT();
 
 	double dead_time;
-	getDeadTime(dead_time);
+	m_cam.getDeadTime(dead_time);
 	DEB_TRACE() << DEB_VAR2(dead_time, m_dead_time);
 	if (dead_time == m_dead_time) 
 		return;
@@ -1049,3 +1016,4 @@ void Geometry::deadTimeChanged()
 	if (m_dead_time_cb)
 		m_dead_time_cb->deadTimeChanged(dead_time);
 }
+

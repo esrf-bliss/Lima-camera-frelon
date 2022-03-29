@@ -182,7 +182,7 @@ class BinCtrlObj : HwBinCtrlObj
 %End
 
  public:
-	BinCtrlObj(Frelon::Camera& cam);
+	BinCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~BinCtrlObj();
 
 	virtual void setBin(const Bin& bin);
@@ -241,7 +241,7 @@ class FlipCtrlObj : HwFlipCtrlObj
 %End
 
  public:
-	FlipCtrlObj(Frelon::Camera& cam);
+	FlipCtrlObj(Espia::Acq& acq, Frelon::Camera& cam);
 	virtual ~FlipCtrlObj();
 
 	virtual void setFlip(const Flip& flip);

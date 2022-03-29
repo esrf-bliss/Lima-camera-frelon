@@ -64,6 +64,7 @@ class Model
 		Taper, HamaChip,
 		ModesAvail, TimeCalc, HTDCmd, GoodHTD, ImagesPerEOF, CamChar,
 		SPB1, SPB2, SPB8,
+		SeqTim,
 	};
 
 	Model();
@@ -89,6 +90,8 @@ class Model
 	Frelon::ChipType getChipType();
 	Frelon::SPBConType getSPBConType();
 	Frelon::GeomType getGeomType();
+	bool isFrelon16();
+	bool isFrelon16Dual();
 	bool has(Model::Feature feature);
 	double getPixelSize();
 

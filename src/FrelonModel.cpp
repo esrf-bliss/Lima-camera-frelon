@@ -203,6 +203,10 @@ void Model::setF16ForceSingle(bool f16_force_single)
 	DEB_MEMBER_FUNCT();
 	DEB_PARAM() << DEB_VAR1(f16_force_single);
 
+	if (f16_force_single && !m_f16_force_single)
+		DEB_ALWAYS() << "Forcing Frelon16 single-SPB8 mode";
+	else if (!f16_force_single && m_f16_force_single)
+		DEB_ALWAYS() << "Disabling Frelon16 single-SPB8 mode";
 	m_f16_force_single = f16_force_single;
 	update();
 }
@@ -277,14 +281,19 @@ void Model::update()
 			m_spb_con_type = spb_con_type;
 	}
 
+	m_feature[SeqTim] = firm_v4_1;
+	if (has(SeqTim))
+		m_feature[TimeCalc] = 0;
+
 	DEB_TRACE() << DEB_VAR3(m_spb_type, m_spb_con_type, m_chip_type);
 	bool has_Taper = has(Taper), has_HamaChip = has(HamaChip);
 	bool has_ModesAvail = has(ModesAvail), has_TimeCalc = has(TimeCalc);
 	bool has_HTDCmd = has(HTDCmd), has_GoodHTD = has(GoodHTD);
 	bool has_ImagesPerEOF = has(ImagesPerEOF), has_CamChar = has(CamChar);
+	bool has_SeqTim = has(SeqTim);
 	DEB_TRACE() << DEB_VAR6(has_Taper, has_HamaChip, has_ModesAvail, 
 				has_TimeCalc, has_HTDCmd, has_GoodHTD);
-	DEB_TRACE() << DEB_VAR2(has_ImagesPerEOF, has_CamChar);
+	DEB_TRACE() << DEB_VAR3(has_ImagesPerEOF, has_CamChar, has_SeqTim);
 }
 
 bool Model::isValid()
@@ -383,10 +392,12 @@ GeomType Model::getGeomType()
 		if (chip_type == Hama)
 			geom_type = Hamamatsu;
 		else if (chip_type == Andanta_CcdFT2k)
-			geom_type = SPB2_F16;
+			THROW_HW_ERROR(NotSupported) << "Obsolete Frelon16 "
+						     << "with SPB2";
 	} else if (has(SPB8)) {
 		if (chip_type != Andanta_CcdFT2k)
-			THROW_HW_ERROR(Error) << "SPB8 only supports Frelon16";
+			THROW_HW_ERROR(NotSupported) << "SPB8 only supports "
+						     << "Frelon16";
 		SPBConType spb_con_type = getSPBConType();
 		bool dual_spb = (spb_con_type == SPBConXY);
 		geom_type = dual_spb ? SPB8_F16_Dual : SPB8_F16_Single;
@@ -394,6 +405,22 @@ GeomType Model::getGeomType()
 
 	DEB_RETURN() << DEB_VAR1(geom_type);
 	return geom_type;
+}
+
+bool Model::isFrelon16()
+{
+	DEB_MEMBER_FUNCT();
+	bool f16 = (getChipType() == Andanta_CcdFT2k);
+	DEB_RETURN() << DEB_VAR1(f16);
+	return f16;
+}
+
+bool Model::isFrelon16Dual()
+{
+	DEB_MEMBER_FUNCT();
+	bool is_dual = (getGeomType() == SPB8_F16_Dual);
+	DEB_RETURN() << DEB_VAR1(is_dual);
+	return is_dual;
 }
 
 double Model::getPixelSize()

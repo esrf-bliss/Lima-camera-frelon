@@ -20,17 +20,18 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 import sys
+import getopt
 from Lima import Core, Espia, Frelon
 
 Core.DEB_GLOBAL(Core.DebModTest)
 
-class DeadTimeChangedCallback(Frelon.Camera.DeadTimeChangedCallback):
+class DeadTimeChangedCallback(Frelon.DeadTimeChangedCallback):
 
     Core.DEB_CLASS(Core.DebModTest, "DeadTimeChangedCallback")
 
     @Core.DEB_MEMBER_FUNCT
     def __init__(self, cam):
-        Frelon.Camera.DeadTimeChangedCallback.__init__(self)
+        Frelon.DeadTimeChangedCallback.__init__(self)
         self.m_cam = cam
         
     @Core.DEB_MEMBER_FUNCT
@@ -44,8 +45,13 @@ def main():
     edev_nr = 0
     enable_debug = False
     
-    if len(sys.argv) > 1:
-        edev_nr = int(sys.argv[1])
+    opts, args = getopt.getopt(sys.argv[1:], "d")
+    for opt, val in opts:
+        if opt == '-d':
+            enable_debug = True
+
+    if len(args) > 0:
+        edev_nr = int(args[0])
 
     if enable_debug:
         Core.DebParams.enableModuleFlags(Core.DebParams.AllFlags)

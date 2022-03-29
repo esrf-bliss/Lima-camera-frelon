@@ -39,6 +39,7 @@ enum Reg {
 	ChanMode,	TimeUnit,	RoiEnable,	RoiFast, 
 	AntiBloom,	BinVert,	BinHorz,	ConfigHD,
 	RoiKinetic,	ShutEnable,	HardTrigDisable,
+	NbLinesXfer,	ShutElecSelect,
 	PixelFreq,	LineFreq,	FlipMode,	IntCalib,
 	DisplayImage,	AdcFloatDiode,	AdcSignal,	
 	DarkPixelCalib,	DarkPixelMode,	ChanControl,	Mire,
@@ -47,11 +48,17 @@ enum Reg {
 	Version,	CompSerNb,	Warn,		LastWarn,
 	LineClockPer,	PixelClockPer,	FirstPHIVLen,	PHIHSetupLen,
 	SingleVertXfer,	SingleHorzXfer,	AllVertXfer,	AllHorzXfer,
-	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
+	ReadoutTime,	TransferTime,   CcdModesAvail,
+	StatusSeqA,	StatusSeqB,
 	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
 	StatusAMTE,
 	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
 	SeqClockFreq,	CamChar,
+	SeqTimRdOutH,		SeqTimRdOutL,
+	SeqTimTransferH,	SeqTimTransferL,
+	SeqTimEShutH,		SeqTimEShutL,
+	SeqTimExposureH,	SeqTimExposureL,
+	SeqTimFramePeriodH,	SeqTimFramePeriodL,
 };
 
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -64,6 +71,7 @@ extern RegListType SignedRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;
+extern RegDoubleMapType RegTimeoutMap;
 
 extern const int MaxRegVal;
 
@@ -163,7 +171,6 @@ enum SPBConType {
 enum GeomType {
 	SPB12_4_Quad,
 	Hamamatsu,
-	SPB2_F16,
 	SPB8_F16_Single,
 	SPB8_F16_Dual,
 };
@@ -179,10 +186,26 @@ enum {
 	KodakModesAvail = 0x0100,
 };
 
-enum {
-	MaxBinX = 8,
-	MaxBinY = 1024,
-};
+typedef std::vector<int> BinList;
+typedef BinList BinTable[2];
+extern BinTable Frelon2kBinTable;
+extern BinTable Frelon16BinTable;
+
+inline int GetLargestDivFromList(int x, const BinList l)
+{
+	BinList::const_reverse_iterator it, end = l.rend();
+	for (it = l.rbegin(); it != end; ++it) {
+		if ((x % *it) == 0)
+			return *it;
+	}
+	throw LIMA_EXC(Hardware, Error, "Invalid div list");
+}
+
+inline Bin GetLargestBin(Bin bin, const BinTable& table)
+{
+	return Bin(GetLargestDivFromList(bin.getX(), table[0]),
+		   GetLargestDivFromList(bin.getY(), table[1]));
+}
 
 enum ExtSync {
 	ExtSyncNone  = 0,
@@ -271,6 +294,16 @@ enum SPB2Config {
 };
 typedef std::map<SPB2Config, std::string> SPB2ConfigStrMapType;
 extern SPB2ConfigStrMapType SPB2ConfigNameMap;
+
+struct SeqTimValues {
+	double readout_time;
+	double transfer_time;
+	double electronic_shutter_time;
+	double exposure_time;
+	double frame_period;
+};
+
+std::ostream& operator <<(std::ostream& os, const SeqTimValues& tm);
 
 } // namespace Frelon
 

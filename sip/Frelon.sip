@@ -38,6 +38,7 @@ enum Reg {
 	ChanMode,	TimeUnit,	RoiEnable,	RoiFast, 
 	AntiBloom,	BinVert,	BinHorz,	ConfigHD,
 	RoiKinetic,	ShutEnable,	HardTrigDisable,
+	NbLinesXfer,	ShutElecSelect,
 	PixelFreq,	LineFreq,	FlipMode,	IntCalib,
 	DisplayImage,	AdcFloatDiode,	AdcSignal,	
 	DarkPixelCalib,	DarkPixelMode,	ChanControl,	Mire,
@@ -46,11 +47,17 @@ enum Reg {
 	Version,	CompSerNb,	Warn,		LastWarn,
 	LineClockPer,	PixelClockPer,	FirstPHIVLen,	PHIHSetupLen,
 	SingleVertXfer,	SingleHorzXfer,	AllVertXfer,	AllHorzXfer,
-	ReadoutTime,	TransferTime,   CcdModesAvail,	StatusSeqA,
+	ReadoutTime,	TransferTime,   CcdModesAvail,
+	StatusSeqA,     StatusSeqB,
 	StatusAMTA,	StatusAMTB,	StatusAMTC,	StatusAMTD,
 	StatusAMTE,
 	LookUpTable,	ImagesPerEOF,	WeightValDFl,	WeightValSig,
 	SeqClockFreq,	CamChar,
+	SeqTimRdOutH,		SeqTimRdOutL,
+	SeqTimTransferH,	SeqTimTransferL,
+	SeqTimEShutH,		SeqTimEShutL,
+	SeqTimExposureH,	SeqTimExposureL,
+	SeqTimFramePeriodH,	SeqTimFramePeriodL,
 };
 /*
 typedef std::map<Reg, std::string> RegStrMapType;
@@ -75,6 +82,7 @@ extern RegListType SignedRegList;
 
 typedef std::map<Reg, double> RegDoubleMapType;
 extern RegDoubleMapType RegSleepMap;
+extern RegDoubleMapType RegTimeoutMap;
 */
 
 const int MaxRegVal;
@@ -170,7 +178,6 @@ enum SPBConType {
 enum GeomType {
 	SPB12_4_Quad,
 	Hamamatsu,
-	SPB2_F16,
 	SPB8_F16_Single,
 	SPB8_F16_Dual,
 };
@@ -185,11 +192,6 @@ extern ChipPixelSizeMapType ChipPixelSizeMap;
 enum {
 	AtmelModesAvail = 0x0fff,
 	KodakModesAvail = 0x0100,
-};
-
-enum {
-	MaxBinX = 8,
-	MaxBinY = 1024,
 };
 
 enum ExtSync {
@@ -275,6 +277,14 @@ enum ShutMode {
 
 enum SPB2Config {
 	SPB2Precision, SPB2Speed,
+};
+
+struct SeqTimValues {
+	double readout_time;
+	double transfer_time;
+	double electronic_shutter_time;
+	double exposure_time;
+	double frame_period;
 };
 
 }; // namespace Frelon

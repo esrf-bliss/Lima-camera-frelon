@@ -31,7 +31,7 @@ using namespace std;
 const double SerialLine::TimeoutSingle    = 0.5;
 const double SerialLine::TimeoutNormal    = 2.0;
 const double SerialLine::TimeoutMultiLine = 3.0;
-const double SerialLine::TimeoutReset     = 10.0;
+const double SerialLine::TimeoutReset     = 15.0;
 
 
 SerialLine::SerialLine(Espia::SerialLine& espia_ser_line)
@@ -91,8 +91,9 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 
 	if (cmd == CmdStrMap[Reset]) {
 		m_curr_op = DoReset;
-		DEB_TRACE() << "DoReset: clearing reg cache";
+		DEB_TRACE() << "DoReset: clearing reg cache and reset trace";
 		m_reg_cache.clear();
+		m_reset_trace_log.clear();
 	} else {
 		MultiLineCmdStrMapType::const_iterator it, end;
 		end = MultiLineCmdStrMap.end();
@@ -154,8 +155,11 @@ void SerialLine::writeCmd(const string& buffer, bool no_wait)
 		}
 	}
 
-	if (m_curr_op == None)
+	if (m_curr_op == None) {
 		m_curr_op = DoCmd;
+		CmdStrMapType::const_iterator it = FindMapValue(CmdStrMap, cmd);
+		m_curr_cmd = (it != CmdStrMap.end()) ? it->first : Reset;
+	}
 
 	DEB_TRACE() << DEB_VAR1(m_curr_op);
 
@@ -229,17 +233,35 @@ void SerialLine::readSingleLine(string& buffer, int max_len, double timeout)
 		return;
 	}
 
-	if ((m_curr_op == DoReset) && (timeout == TimeoutDefault))
-		timeout = TimeoutReset;
+	if (timeout == TimeoutDefault) {
+		bool slow_cmd = ((m_curr_op == DoCmd) && (m_curr_cmd == Reload));
+		if ((m_curr_op == DoReset) || slow_cmd) {
+			timeout = TimeoutReset;
+		} else if (m_curr_op == WriteReg) {
+			RegDoubleMapType::const_iterator it;
+			it = RegTimeoutMap.find(m_curr_reg);
+			if (it != RegTimeoutMap.end())
+				timeout = it->second;
+		}
+	}
+
+	Timestamp t0 = Timestamp::now();
+	bool reset_trace;
 	do {
 		m_espia_ser_line.readLine(buffer, max_len, timeout);
-	} while ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
+		reset_trace = ((m_curr_op == DoReset) && (buffer != "!OK\r\n"));
+		if (reset_trace) {
+			std::string s = buffer.substr(0, buffer.size() - 2);
+			m_reset_trace_log.push_back(s);
+		}
+	} while (reset_trace);
+	double ack_delay = Timestamp::now() - t0;
 
 	decodeFmtResp(buffer, m_curr_fmt_resp);
 
 	if (m_curr_op == WriteReg) {
 		double sleep_time = getRegSleepTime(m_curr_reg);
-		if (sleep_time > 0) {
+		if ((sleep_time > 0) && (ack_delay < sleep_time)) {
 			DEB_TRACE() << "Sleeping " << sleep_time << " s after "
 				    << "changing " << RegStrMap[m_curr_reg];
 			Sleep(sleep_time);
@@ -536,6 +558,14 @@ void SerialLine::getCacheActive(bool& cache_act)
 	AutoMutex l = lock(AutoMutex::Locked);
 	cache_act = m_cache_act;
 	DEB_RETURN() << DEB_VAR1(cache_act);
+}
+
+void SerialLine::getResetTraceLog(StrList& reset_trace_log)
+{
+	DEB_MEMBER_FUNCT();
+	AutoMutex l = lock(AutoMutex::Locked);
+	reset_trace_log = m_reset_trace_log;
+	DEB_RETURN() << DEB_VAR1(reset_trace_log);
 }
 
 void SerialLine::writeRegister(Reg reg, int  val)

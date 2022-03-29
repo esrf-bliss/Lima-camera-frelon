@@ -56,7 +56,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
  public:
 	Geometry(Camera& cam);
-	~Geometry();
+	virtual ~Geometry();
 
 	void sync();
 
@@ -99,14 +99,15 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
 	std::string getSPB2ConfigName(SPB2Config spb2_config);
 
-	void getReadoutTime(double& readout_time);
-	void getTransferTime(double& xfer_time);
-	void getDeadTime(double& dead_time);
-
 	void deadTimeChanged();
 
 	void registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
 	void unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb);
+
+	Flip  getMirror();
+	Point getNbChan();
+	Size  getCcdSize();
+	Size  getChanSize();
 
  protected:
 	virtual void setMaxImageSizeCallbackActive(bool cb_active);
@@ -115,7 +116,6 @@ class Geometry : public HwMaxImageSizeCallbackGen
 
 	void writeRegister(Reg reg, int  val);
 	void readRegister (Reg reg, int& val);
-	void readFloatRegister(Reg reg, double& val);
 	
 	int getModesAvail();
 
@@ -131,11 +131,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void setFlipMode(int  flip_mode);
 	void getFlipMode(int& flip_mode);
 
-	Flip  getMirror();
-	Point getNbChan();
-	Size  getCcdSize();
-	Size  getChanSize();
-        Flip  getRoiInsideMirror();
+        Flip getRoiInsideMirror();
 
 	void writeChanRoi(const Roi& chan_roi);
 	void readChanRoi(Roi& chan_roi);
@@ -154,7 +150,7 @@ class Geometry : public HwMaxImageSizeCallbackGen
 	void processSetRoi(const Roi& req_roi, Roi& hw_roi, Roi& chan_roi, 
 			   Point& roi_offset);
 	void resetRoiBinOffset();
-	
+
 	Camera& m_cam;
 	Model& m_model;
 	Point m_chan_roi_offset;
@@ -171,7 +167,7 @@ inline bool Geometry::isChanActive(InputChan curr, InputChan chan)
 
 inline bool Geometry::isFrelon16()
 {
-	return (m_model.getChipType() == Andanta_CcdFT2k);
+	return m_model.isFrelon16();
 }
 
 

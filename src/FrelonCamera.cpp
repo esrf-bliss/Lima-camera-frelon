@@ -20,10 +20,60 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 #include "FrelonCamera.h"
+#include <iomanip>
 
 using namespace lima;
 using namespace lima::Frelon;
 using namespace std;
+
+Camera::TempRegVal::TempRegVal(Camera& cam, Reg r, int val)
+	: m_cam(cam), m_reg(r)
+{
+	m_cam.readRegister(m_reg, m_orig_val);
+	m_changed = (m_orig_val != val);
+	if (m_changed)
+		m_cam.writeRegister(m_reg, val);
+}
+
+Camera::TempRegVal::~TempRegVal()
+{
+	restore();
+}
+
+void Camera::TempRegVal::restore()
+{
+	if (m_changed) {
+		m_cam.writeRegister(m_reg, m_orig_val);
+		m_changed = false;
+	}
+}
+
+Camera::AcqSeq::AcqSeq(Camera& cam)
+	: m_cam(cam)
+{
+	Status status;
+	m_cam.getStatus(status);
+	if (status != Wait)
+		throw LIMA_EXC(Hardware, Error, "Camera is not idle");
+	m_cam.start();
+}
+
+Camera::AcqSeq::~AcqSeq()
+{
+	stop();
+}
+
+void Camera::AcqSeq::stop()
+{
+	m_cam.stop();
+}
+
+bool Camera::AcqSeq::wait(double timeout, bool use_ser_line, bool read_spb)
+{
+	Status status = Wait;
+	return m_cam.waitStatus(status, StatusMask, timeout,
+				use_ser_line, read_spb);
+}
 
 const double Camera::ResetLinkWaitTime = 5;
 const double Camera::UpdateCcdStatusTime = 0.1;
@@ -31,10 +81,11 @@ const double Camera::MaxIdleWaitTime = 2.5;
 const double Camera::MaxBusyRetryTime = 0.2;	// 16 Mpixel image Aurora Xfer
 
 Camera::Camera(Espia::SerialLine& espia_ser_line)
-	: m_ser_line(espia_ser_line), m_timing_ctrl(m_model, m_ser_line),
-	  m_geom(NULL)
+	: m_ser_line(espia_ser_line), m_auto_seq_tim_measure(true)
 {
 	DEB_CONSTRUCTOR();
+
+	m_timing_ctrl = new TimingCtrl(*this);
 
 	sync();
 }
@@ -110,7 +161,6 @@ void Camera::syncRegs()
 		switch (geom_type) {
 		case SPB12_4_Quad:
 		case Hamamatsu:
-		case SPB2_F16:
 		case SPB8_F16_Single:
 		case SPB8_F16_Dual:
 			m_geom = new Geometry(*this);
@@ -215,6 +265,11 @@ Espia::Dev& Camera::getEspiaDev()
 	Espia::SerialLine& ser_line = m_ser_line.getEspiaSerialLine();
 	Espia::Dev& dev = ser_line.getDev();
 	return dev;
+}
+
+Geometry& Camera::getGeometry()
+{
+	return *m_geom;
 }
 
 void Camera::sendCmd(Cmd cmd)
@@ -322,11 +377,6 @@ void Camera::getComplexSerialNb(int& complex_ser_nb)
 Model& Camera::getModel()
 {
 	return m_model;
-}
-
-TimingCtrl& Camera::getTimingCtrl()
-{
-	return m_timing_ctrl;
 }
 
 string Camera::getInputChanModeName(FrameTransferMode ftm, 
@@ -624,19 +674,19 @@ void Camera::getUserLatTime(double& lat_time)
 void Camera::getReadoutTime(double& readout_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getReadoutTime(readout_time);
+	m_timing_ctrl->getReadoutTime(readout_time);
 }
 
 void Camera::getTransferTime(double& xfer_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getTransferTime(xfer_time);
+	m_timing_ctrl->getTransferTime(xfer_time);
 }
 
 void Camera::getDeadTime(double& dead_time)
 {
 	DEB_MEMBER_FUNCT();
-	m_geom->getDeadTime(dead_time);
+	m_timing_ctrl->getDeadTime(dead_time);
 }
 
 void Camera::setTotalLatTime(double lat_time)
@@ -645,6 +695,8 @@ void Camera::setTotalLatTime(double lat_time)
 	DEB_PARAM() << DEB_VAR1(lat_time);
 	double dead_time;
 	getDeadTime(dead_time);
+	if (dead_time < 0)
+		dead_time = 0;
 	double user_lat_time = max(0.0, lat_time - dead_time);
 	setUserLatTime(user_lat_time);
 }
@@ -656,6 +708,8 @@ void Camera::getTotalLatTime(double& lat_time)
 	getUserLatTime(user_lat_time);
 	double dead_time;
 	getDeadTime(dead_time);
+	if (dead_time < 0)
+		dead_time = 0;
 	lat_time = dead_time + user_lat_time;
 	DEB_RETURN() << DEB_VAR1(lat_time);
 }
@@ -732,8 +786,6 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb)
 		THROW_HW_ERROR(NotSupported) << "SPB2/ser. line status "
 			"not supported: must upgrade to good HTD firmware";
 
-	int spb_status = read_spb ? getSPBStatus() : 0;
-	
 	int ccd_status;
 	if (use_ser_line) {
 		readRegister(StatusSeqA, ccd_status);
@@ -742,6 +794,7 @@ void Camera::getStatus(Status& status, bool use_ser_line, bool read_spb)
 		dev.getCcdStatus(ccd_status);
 	}
 
+	int spb_status = read_spb ? getSPBStatus() : 0;
 	ccd_status |= spb_status;
 
 	status = Status(ccd_status);
@@ -839,6 +892,33 @@ void Camera::getImageCount(unsigned int& img_count, bool only_lsw)
 	}
 
 	DEB_RETURN() << DEB_VAR1(img_count);
+}
+
+void Camera::getMissingExtStartPulses(int& missing_pulses)
+{
+	DEB_MEMBER_FUNCT();
+	readRegister(StatusSeqB, missing_pulses);
+	DEB_RETURN() << DEB_VAR1(missing_pulses);
+}
+
+void Camera::prepare()
+{
+	DEB_MEMBER_FUNCT();
+
+	bool do_seq_tim_measure = (m_auto_seq_tim_measure &&
+				   needSeqTimMeasure());
+	if (do_seq_tim_measure) {
+		DEB_ALWAYS() << "Measuring Frelon timing ...";
+		SeqTimValues st;
+		measureSeqTimValues(st);
+		double readout_ms = st.readout_time * 1e3;
+		double xfer_ms = st.transfer_time * 1e3;
+		ostringstream os;
+		int prec = os.precision();
+		DEB_ALWAYS() << fixed << setprecision(3)
+			     << DEB_VAR2(readout_ms, xfer_ms)
+			     << setprecision(prec);
+	}
 }
 
 void Camera::start()
@@ -941,6 +1021,25 @@ double Camera::getMaxIdleWaitTime()
 	return max_wait_time;
 }
 
+bool Camera::needSeqTimMeasure()
+{
+	DEB_MEMBER_FUNCT();
+	return m_timing_ctrl->needSeqTimMeasure();
+}
+
+void Camera::latchSeqTimValues(SeqTimValues& st)
+{
+	DEB_MEMBER_FUNCT();
+	m_timing_ctrl->latchSeqTimValues(st);
+}
+
+void Camera::measureSeqTimValues(SeqTimValues& st, double timeout)
+{
+	DEB_MEMBER_FUNCT();
+	m_timing_ctrl->measureSeqTimValues(st, timeout);
+	m_geom->deadTimeChanged();
+}
+
 void Camera::registerDeadTimeChangedCallback(DeadTimeChangedCallback& cb)
 {
 	DEB_MEMBER_FUNCT();
@@ -953,6 +1052,19 @@ void Camera::unregisterDeadTimeChangedCallback(DeadTimeChangedCallback& cb)
 	m_geom->unregisterDeadTimeChangedCallback(cb);
 }
 
+void Camera::setAutoSeqTimMeasure(bool auto_measure)
+{
+	DEB_MEMBER_FUNCT();
+	DEB_PARAM() << DEB_VAR1(auto_measure);
+	m_auto_seq_tim_measure = auto_measure;
+}
+
+void Camera::getAutoSeqTimMeasure(bool& auto_measure)
+{
+	DEB_MEMBER_FUNCT();
+	auto_measure = m_auto_seq_tim_measure;
+	DEB_RETURN() << DEB_VAR1(auto_measure);
+}
 
 void Camera::registerMaxImageSizeCallback(HwMaxImageSizeCallback& cb)
 {

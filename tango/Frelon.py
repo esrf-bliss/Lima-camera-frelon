@@ -45,6 +45,8 @@ from Lima import Core
 from Lima import Frelon as FrelonHw
 from Lima.Server import AttrHelper
 
+EspiaDevNbInvalid = 256
+
 class Frelon(PyTango.Device_4Impl):
 
     Core.DEB_CLASS(Core.DebModApplication, 'LimaFrelon')
@@ -118,9 +120,25 @@ class Frelon(PyTango.Device_4Impl):
 
     @Core.DEB_MEMBER_FUNCT
     def resetLink(self) :
-        edev = _FrelonAcq.getEspiaDev()
+        edev = _FrelonAcq.getEspiaAcqDev()
         edev.resetLink()
         time.sleep(self.ResetLinkWaitTime)
+
+    @Core.DEB_MEMBER_FUNCT
+    def latchSeqTimValues(self) :
+        cam = _FrelonAcq.getFrelonCamera()
+        tm = cam.latchSeqTimValues()
+        return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
+                tm.exposure_time, tm.frame_period]
+
+    @Core.DEB_MEMBER_FUNCT
+    def measureSeqTimValues(self, timeout) :
+        cam = _FrelonAcq.getFrelonCamera()
+        if timeout == 0:
+            timeout = 3
+        tm = cam.measureSeqTimValues(timeout)
+        return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
+                tm.exposure_time, tm.frame_period]
 
     ## @brief read the espia board id
     #
@@ -129,6 +147,34 @@ class Frelon(PyTango.Device_4Impl):
         if self.espia_dev_nb:
             espia_dev_nb = self.espia_dev_nb
         attr.set_value(espia_dev_nb)
+
+    def read_espia_dev_nb2(self,attr) :
+        espia_dev_nb2 = -1
+        if self.espia_dev_nb2 != EspiaDevNbInvalid:
+            espia_dev_nb2 = self.espia_dev_nb2
+        attr.set_value(espia_dev_nb2)
+
+    def read_espia_lib_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        attr.set_value(lib_deb_lvl)
+
+    def write_espia_lib_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        lib_deb_lvl = attr.get_write_value()
+        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
+
+    def read_espia_drv_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        attr.set_value(drv_deb_lvl)
+
+    def write_espia_drv_debug_level(self,attr) :
+        edev = _FrelonAcq.getEspiaAcqDev()
+        lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
+        drv_deb_lvl = attr.get_write_value()
+        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
 
     def read_roi_bin_offset(self,attr) :
         cam = _FrelonAcq.getFrelonCamera()
@@ -145,6 +191,29 @@ class Frelon(PyTango.Device_4Impl):
         serial = model.getSerialNb()
         attr.set_value("%d" % serial)
 
+    def read_reset_trace_log(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        ser_line = cam.getSerialLine()
+        reset_trace_log = ser_line.getResetTraceLog()
+        attr.set_value(reset_trace_log)
+
+    def read_readout_time(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        if cam.needSeqTimMeasure():
+            raise Core.Exception('Camera needs SeqTim measurement')
+        attr.set_value(cam.getReadoutTime())
+
+    def read_transfer_time(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        if cam.needSeqTimMeasure():
+            raise Core.Exception('Camera needs SeqTim measurement')
+        attr.set_value(cam.getTransferTime())
+
+    def read_need_seq_tim_measure(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        attr.set_value(cam.needSeqTimMeasure())
+
+
 class FrelonClass(PyTango.DeviceClass):
 
     class_property_list = {}
@@ -153,6 +222,15 @@ class FrelonClass(PyTango.DeviceClass):
         'espia_dev_nb':
         [PyTango.DevShort,
          "Espia board device number",[]],
+        'espia_dev_nb2':
+        [PyTango.DevShort,
+         "Second Espia board device number",[EspiaDevNbInvalid]],
+        'espia_lib_debug_level':
+        [PyTango.DevLong,
+         "Espia library debug level",[-1]],
+        'espia_drv_debug_level':
+        [PyTango.DevLong,
+         "Espia driver debug level",[-1]],
         }
 
     cmd_list = {
@@ -165,6 +243,14 @@ class FrelonClass(PyTango.DeviceClass):
         'resetLink':
         [[PyTango.DevVoid,""],
          [PyTango.DevVoid,""]],
+        'latchSeqTimValues':
+        [[PyTango.DevVoid,""],
+         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
+          "electronic_shutter_time, exposure_time, frame_period>"]],
+        'measureSeqTimValues':
+        [[PyTango.DevDouble,"timeout"],
+         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
+          "electronic_shutter_time, exposure_time, frame_period>"]],
         }
 
     attr_list = {
@@ -172,6 +258,18 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevShort,
           PyTango.SCALAR,
           PyTango.READ]],
+        'espia_dev_nb2':
+        [[PyTango.DevShort,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'espia_lib_debug_level':
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
+        'espia_drv_debug_level':
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
         'image_mode' :
         [[PyTango.DevString,
           PyTango.SCALAR,
@@ -208,10 +306,30 @@ class FrelonClass(PyTango.DeviceClass):
         [[PyTango.DevFloat,
           PyTango.SCALAR,
           PyTango.READ]],
+        'need_seq_tim_measure' :
+        [[PyTango.DevBoolean,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'auto_seq_tim_measure' :
+        [[PyTango.DevBoolean,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE]],
+        'image_count' :
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ]],
+        'missing_ext_start_pulses' :
+        [[PyTango.DevLong,
+          PyTango.SCALAR,
+          PyTango.READ]],
         'camera_serial' :
         [[PyTango.DevString,
           PyTango.SCALAR,
           PyTango.READ]],
+        'reset_trace_log' :
+        [[PyTango.DevString,
+          PyTango.SPECTRUM,
+          PyTango.READ, 65535]],
         }
 
     def __init__(self,name) :
@@ -428,10 +546,14 @@ FrelonTacoProxyCont = [FrelonTacoProxy()]
 #----------------------------------------------------------------------------
 _FrelonAcq = None
 
-def get_control(espia_dev_nb = 0,**keys) :
+def get_control(espia_dev_nb = 0, espia_dev_nb2 = EspiaDevNbInvalid,
+                espia_lib_debug_level = -1, espia_drv_debug_level = -1,
+                **keys) :
     global _FrelonAcq
     if _FrelonAcq is None:
-       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb))
+       _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb), int(espia_dev_nb2),
+                                       int(espia_lib_debug_level),
+                                       int(espia_drv_debug_level))
     return _FrelonAcq.getGlobalControl() 
 
 def get_tango_specific_class_n_device():

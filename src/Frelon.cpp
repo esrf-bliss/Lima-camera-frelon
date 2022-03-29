@@ -48,6 +48,9 @@ static const RegPair RegStrCList[] = {
 	RegPair(ShutEnable,	"U"),
 	RegPair(HardTrigDisable,"HTD"),
 
+	RegPair(NbLinesXfer,	"NLT"),
+	RegPair(ShutElecSelect,	"SES"),
+
 	RegPair(PixelFreq,	"P"),
 	RegPair(LineFreq,	"L"),
 
@@ -88,6 +91,7 @@ static const RegPair RegStrCList[] = {
 	RegPair(CcdModesAvail,	"CMA"),
 
 	RegPair(StatusSeqA,	"SSA"),
+	RegPair(StatusSeqB,	"SSB"),
 	RegPair(StatusAMTA,	"SAA"),
 	RegPair(StatusAMTB,	"SAB"),
 	RegPair(StatusAMTC,	"SAC"),
@@ -101,6 +105,18 @@ static const RegPair RegStrCList[] = {
 
 	RegPair(SeqClockFreq,	"FSC"),
 	RegPair(CamChar,	"CCH"),
+
+	RegPair(SeqTimRdOutH,		"SETA"),
+	RegPair(SeqTimRdOutL,		"SETB"),
+	RegPair(SeqTimTransferH,	"SETC"),
+	RegPair(SeqTimTransferL,	"SETD"),
+	RegPair(SeqTimEShutH,		"SETE"),
+	RegPair(SeqTimEShutL,		"SETF"),
+	RegPair(SeqTimExposureH,	"SETG"),
+	RegPair(SeqTimExposureL,	"SETH"),
+	RegPair(SeqTimFramePeriodH,	"SETI"),
+	RegPair(SeqTimFramePeriodL,	"SETJ"),
+
 };
 RegStrMapType lima::Frelon::RegStrMap(C_LIST_ITERS(RegStrCList));
 
@@ -110,7 +126,7 @@ static Reg CacheableRegCList[] = {
 	ChanMode,	TimeUnit,	RoiEnable,	RoiFast,
 	RoiKinetic,	BinVert,	BinHorz,	ConfigHD,
 	ShutEnable,	HardTrigDisable, FlipMode,	CompSerNb,
-	CcdModesAvail,	ImagesPerEOF,
+	CcdModesAvail,	ImagesPerEOF,   NbLinesXfer,    ShutElecSelect,
 };
 RegListType 
 lima::Frelon::CacheableRegList(C_LIST_ITERS(CacheableRegCList));
@@ -126,13 +142,20 @@ static Reg SignedRegCList[] = {
 };
 RegListType lima::Frelon::SignedRegList(C_LIST_ITERS(SignedRegCList));
 
-typedef pair<Reg, double> RegSleepPair;
-static const RegSleepPair RegSleepCList[] = {
-	RegSleepPair(ConfigHD,    2.0),
-	RegSleepPair(BinHorz,     2.0),
-	RegSleepPair(LookUpTable, 2.0),
+typedef pair<Reg, double> RegDoublePair;
+
+static const RegDoublePair RegSleepCList[] = {
+	RegDoublePair(ConfigHD,    2.0),
+	RegDoublePair(BinHorz,     2.0),
+	RegDoublePair(LookUpTable, 2.0),
 };
 RegDoubleMapType lima::Frelon::RegSleepMap(C_LIST_ITERS(RegSleepCList));
+
+static const RegDoublePair RegTimeoutCList[] = {
+	RegDoublePair(ConfigHD,    10.0),
+	RegDoublePair(BinHorz,     10.0),
+};
+RegDoubleMapType lima::Frelon::RegTimeoutMap(C_LIST_ITERS(RegTimeoutCList));
 
 const int lima::Frelon::MaxRegVal = (1 << 16) - 1;
 
@@ -247,6 +270,21 @@ static const ChipSizePair ChipPixelSizeCList[] = {
 ChipPixelSizeMapType 
 lima::Frelon::ChipPixelSizeMap(C_LIST_ITERS(ChipPixelSizeCList));
 
+static const int Frelon2kBinXCList[] = {1, 2, 4, 8};
+static const int Frelon2kBinYCList[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
+					1024};
+BinTable lima::Frelon::Frelon2kBinTable = {
+	{C_LIST_ITERS(Frelon2kBinXCList)},
+	{C_LIST_ITERS(Frelon2kBinYCList)},
+};
+
+static const int Frelon16BinXCList[] = {1, 2, 3, 5};
+static const int Frelon16BinYCList[] = {1, 2, 3, 4, 5};
+BinTable lima::Frelon::Frelon16BinTable = {
+	{C_LIST_ITERS(Frelon16BinXCList)},
+	{C_LIST_ITERS(Frelon16BinYCList)},
+};
+
 typedef pair<SPB2Config, string> SPB2ConfigStrPair;
 static const SPB2ConfigStrPair SPB2ConfigNameCList[] = {
 	SPB2ConfigStrPair(SPB2Precision, "Precision"),
@@ -254,3 +292,16 @@ static const SPB2ConfigStrPair SPB2ConfigNameCList[] = {
 };
 SPB2ConfigStrMapType
 lima::Frelon::SPB2ConfigNameMap(C_LIST_ITERS(SPB2ConfigNameCList));
+
+std::ostream& lima::Frelon::operator <<(std::ostream& os,
+					const SeqTimValues& st)
+{
+	return os << "<"
+		  << "readout_time=" << st.readout_time << ", "
+		  << "transfer_time=" << st.transfer_time << ", "
+		  << "electronic_shutter_time=" << st.electronic_shutter_time
+		  << ", "
+		  << "exposure_time=" << st.exposure_time << ", "
+		  << "frame_period=" << st.frame_period << ", "
+		  << ">";
+}

@@ -422,8 +422,8 @@ BinChangedCallback::~BinChangedCallback()
 		m_bin_ctrl_obj->unregisterBinChangedCallback(*this);
 }
 
-BinCtrlObj::BinCtrlObj(Camera& cam)
-	: m_cam(cam), m_bin_chg_cb(NULL)
+BinCtrlObj::BinCtrlObj(Espia::Acq& acq, Camera& cam)
+	: m_acq(acq), m_cam(cam), m_bin_chg_cb(NULL)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -439,6 +439,15 @@ void BinCtrlObj::setBin(const Bin& bin)
 {
 	DEB_MEMBER_FUNCT();
 	m_cam.setBin(bin);
+
+	Espia::SGImgConfig img_config;
+	Size prev_size;
+	m_acq.getSGImgConfig(img_config, prev_size);
+	FrameDim det_frame_dim;
+	m_cam.getFrameDim(det_frame_dim);
+	Size new_size = det_frame_dim.getSize() / bin;
+	if (new_size != prev_size)
+		m_acq.setSGImgConfig(img_config, new_size);
 
 	if (m_bin_chg_cb) {
 		DEB_TRACE() << "Firing change callback";
@@ -577,7 +586,8 @@ void RoiCtrlObj::checkEspiaRoi(const Roi& set_roi, Roi& hw_roi,
 
 	det_frame_size = hw_roi.getSize();
 
-	bool sg_roi = (!set_roi.isEmpty() && (hw_roi != set_roi));
+	bool f16_dual = m_cam.getModel().isFrelon16Dual();
+	bool sg_roi = (!f16_dual && !set_roi.isEmpty() && (hw_roi != set_roi));
 	if (sg_roi) {
 		espia_roi = hw_roi.subRoiAbs2Rel(set_roi);
 		int width = set_roi.getSize().getWidth();
@@ -629,8 +639,8 @@ void RoiCtrlObj::unregisterRoiChangedCallback(RoiChangedCallback& roi_chg_cb)
  * \brief FlipCtrlObj constructor
  *******************************************************************/
 
-FlipCtrlObj::FlipCtrlObj(Camera& cam)
-	: m_cam(cam)
+FlipCtrlObj::FlipCtrlObj(Espia::Acq& acq, Camera& cam)
+	: m_acq(acq), m_cam(cam)
 {
 	DEB_CONSTRUCTOR();
 }
@@ -643,7 +653,26 @@ FlipCtrlObj::~FlipCtrlObj()
 void FlipCtrlObj::setFlip(const Flip& flip)
 {
 	DEB_MEMBER_FUNCT();
+
 	m_cam.setFlip(flip);
+	if (!m_cam.getModel().isFrelon16Dual())
+		return;
+
+	Espia::SGImgConfig img_config = (flip.y ? Espia::SGImgConcatVertInv2 :
+						  Espia::SGImgConcatVert2);
+	Size det_size;
+	Roi roi;
+	m_cam.getRoi(roi);
+	if (roi.isActive()) {
+		det_size = roi.getSize();
+	} else {
+		FrameDim det_frame_dim;
+		m_cam.getFrameDim(det_frame_dim);
+		Bin bin;
+		m_cam.getBin(bin);
+		det_size = det_frame_dim.getSize() / bin;
+	}
+	m_acq.setSGImgConfig(img_config, det_size);
 }
 
 void FlipCtrlObj::getFlip(Flip& flip)
@@ -806,12 +835,12 @@ Interface::Interface(Espia::Acq& acq, BufferCtrlMgr& buffer_mgr,
 		     Camera& cam)
 	: m_acq(acq), m_buffer_mgr(buffer_mgr), m_cam(cam),
 	  m_det_info(cam), m_buffer(buffer_mgr), m_sync(acq, cam), 
-	  m_bin(cam), m_roi(acq, cam), m_flip(cam), m_shutter(cam),
+	  m_bin(acq, cam), m_roi(acq, cam), m_flip(acq, cam), m_shutter(cam),
 	  m_acq_end_cb(cam), m_event_cb(m_event)
 {
 	DEB_CONSTRUCTOR();
 
-	bool f16_dual = (m_cam.getModel().getGeomType() == SPB8_F16_Dual);
+	bool f16_dual = m_cam.getModel().isFrelon16Dual();
 	if (f16_dual != m_acq.getDev().isMeta())
 		THROW_HW_ERROR(Error) << "Frelon16 2xSPB8 / Espia mismatch";
 	Espia::SGImgConfig img_config = (f16_dual ? Espia::SGImgConcatVert2 :
@@ -884,7 +913,7 @@ void Interface::resetDefaults()
 
 	stopAcq();
 
-	bool f16 = (m_cam.getModel().getChipType() == Andanta_CcdFT2k);
+	bool f16 = m_cam.getModel().isFrelon16();
 	FrameTransferMode ftm_seq[2] = {!f16 ? FFM : FTM, !f16 ? FTM : FFM};
 	FrameTransferMode ftm;
 	InputChan input_chan;
@@ -907,7 +936,7 @@ void Interface::resetDefaults()
 	m_cam.setRoiBinOffset(Point(0));
 	m_bin.setBin(Bin(1));
 	m_roi.setRoi(Roi());
-	
+
 	Size image_size;
 	m_det_info.getMaxImageSize(image_size);
 	ImageType image_type;
@@ -922,6 +951,7 @@ void Interface::resetDefaults()
 void Interface::prepareAcq()
 {
 	DEB_MEMBER_FUNCT();
+	m_cam.prepare();
 }
 
 void Interface::startAcq()
@@ -981,8 +1011,13 @@ void Interface::getStatus(StatusType& status)
 
 	TrigMode trig_mode;
 	m_cam.getTrigMode(trig_mode);
-	if ((trig_mode == IntTrigMult) && (status.det == DetWaitForTrigger))
-		status.det = DetIdle;
+	if (trig_mode == IntTrigMult) {
+		// temporary patch until det status is properly managed in core
+		if (status.det & DetWaitForTrigger)
+			status.det = DetIdle;
+		else if (status.det == DetIdle)
+			status.det = DetExposure;
+	}
 
 	DEB_RETURN() << DEB_VAR1(status);
 }
