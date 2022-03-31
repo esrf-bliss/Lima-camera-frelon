@@ -103,6 +103,9 @@ class SerialLine : HwSerialLine
 	void getCacheActive(bool& cache_act /Out/);
 
 	void getResetTraceLog(std::vector<std::string>& reset_trace_log /Out/);
+
+ private:
+	SerialLine(const Frelon::SerialLine&);
 };
 
 

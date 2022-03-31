@@ -18,16 +18,16 @@ build:
 requirements:
   host:
     - python {{ python }}
-    - sip 4.19.8              # For compatibility with pyqt 5.9.2
+    - sip 4.19* # API v12.7
     - lima-core
     - lima-common-espia
   build:
     - cmake
-    - make
+    - ninja
     - {{ compiler('cxx') }}
   run:
     - python
-    - sip >=4.19.4, <=4.19.8  # For compatibility with pyqt 5.9.2
+    - {{ pin_compatible('sip', min_pin='x.x.x', max_pin='x') }}
     - {{ pin_compatible('lima-core', max_pin='x.x') }}
     - lima-common-espia
 

@@ -41,6 +41,9 @@ class AcqEndCallback : Espia::AcqEndCallback
 
  protected:
 	virtual void acqFinished(const HwFrameInfoType& /*finfo*/);
+
+ private:
+	AcqEndCallback(Frelon::AcqEndCallback&);
 };
 
 
@@ -58,6 +61,9 @@ class EventCallback : EventCallback
 
  protected:
 	virtual void processEvent(Event *event);
+
+ private:
+	EventCallback(const Frelon::EventCallback&);
 };
 
 
@@ -88,6 +94,9 @@ class DetInfoCtrlObj : HwDetInfoCtrlObj
 					HwMaxImageSizeCallback& cb);
 	virtual void unregisterMaxImageSizeCallback(
 					HwMaxImageSizeCallback& cb);
+
+ private:
+	DetInfoCtrlObj(const Frelon::DetInfoCtrlObj&);
 };
 
 
@@ -123,6 +132,8 @@ class BufferCtrlObj : HwBufferCtrlObj
 	virtual void   registerFrameCallback(HwFrameCallback& frame_cb);
 	virtual void unregisterFrameCallback(HwFrameCallback& frame_cb);
 
+ private:
+	BufferCtrlObj(const Frelon::BufferCtrlObj&);
 };
 
 
@@ -153,6 +164,8 @@ class SyncCtrlObj : HwSyncCtrlObj
 
 	virtual void getValidRanges(HwSyncCtrlObj::ValidRangesType& valid_ranges /Out/);
 
+ private:
+	SyncCtrlObj(const Frelon::SyncCtrlObj&);
 };
 
 
@@ -170,6 +183,9 @@ class BinChangedCallback
 
  protected:
 	virtual void hwBinChanged(const Bin& hw_bin) = 0;
+
+ private:
+	BinChangedCallback(const Frelon::BinChangedCallback&);
 };
 
 
@@ -191,6 +207,9 @@ class BinCtrlObj : HwBinCtrlObj
 
 	void registerBinChangedCallback  (Frelon::BinChangedCallback& chg_cb);
 	void unregisterBinChangedCallback(Frelon::BinChangedCallback& chg_cb);
+
+ private:
+	BinCtrlObj(const Frelon::BinCtrlObj&);
 };
 
 
@@ -208,6 +227,9 @@ class RoiChangedCallback
 
  protected:
 	virtual void hwRoiChanged(const Roi& hw_roi) = 0;
+
+ private:
+	RoiChangedCallback(const Frelon::RoiChangedCallback&);
 };
 
 
@@ -229,6 +251,10 @@ class RoiCtrlObj : HwRoiCtrlObj
 
 	void registerRoiChangedCallback  (Frelon::RoiChangedCallback& chg_cb);
 	void unregisterRoiChangedCallback(Frelon::RoiChangedCallback& chg_cb);
+
+ private:
+	RoiCtrlObj(const Frelon::RoiCtrlObj&);
+
 };
 
 
@@ -246,7 +272,11 @@ class FlipCtrlObj : HwFlipCtrlObj
 
 	virtual void setFlip(const Flip& flip);
 	virtual void getFlip(Flip& flip /Out/);
+
 	virtual void checkFlip(Flip& flip /In,Out/);
+
+ private:
+	FlipCtrlObj(const Frelon::FlipCtrlObj&);
 };
 
 
@@ -258,23 +288,25 @@ class ShutterCtrlObj : HwShutterCtrlObj
 #include <algorithm>
 %End
 
-public:
+ public:
 	ShutterCtrlObj(Frelon::Camera& cam);
 	virtual ~ShutterCtrlObj();
 
-	virtual bool checkMode(ShutterMode shut_mode);
-	virtual void getModeList(ShutterModeList&  mode_list /Out/);
+	virtual bool checkMode(ShutterMode shut_mode) const;
+	virtual void getModeList(ShutterModeList&  mode_list /Out/) const;
 	virtual void setMode(ShutterMode  shut_mode);
-	virtual void getMode(ShutterMode& shut_mode /Out/);
+	virtual void getMode(ShutterMode& shut_mode /Out/) const;
 
 	virtual void setState(bool  shut_open);
-	virtual void getState(bool& shut_open /Out/);
+	virtual void getState(bool& shut_open /Out/) const;
 
 	virtual void setOpenTime (double  shut_open_time);
-	virtual void getOpenTime (double& shut_open_time /Out/);
+	virtual void getOpenTime (double& shut_open_time /Out/) const;
 	virtual void setCloseTime(double  shut_close_time);
-	virtual void getCloseTime(double& shut_close_time /Out/);
+	virtual void getCloseTime(double& shut_close_time /Out/) const;
 
+ private:
+	ShutterCtrlObj(const Frelon::ShutterCtrlObj&);
 };
 
 
@@ -286,9 +318,12 @@ class EventCtrlObj : HwEventCtrlObj
 #include <algorithm>
 %End
 
-public:
+ public:
 	EventCtrlObj();
 	virtual ~EventCtrlObj();
+	
+ private:
+	EventCtrlObj(const Frelon::EventCtrlObj&);
 };
 
 
@@ -333,6 +368,9 @@ class Interface : HwInterface
 			break;
 		}
 %End
+
+ private:
+	Interface(const Frelon::Interface&);
 };
 
 
