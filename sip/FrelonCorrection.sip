@@ -41,9 +41,6 @@ using namespace lima;
 	void getHwRoi(Roi& hw_roi /Out/);
 
 	virtual Data process(Data& data);
-
- private:
-	E2VCorrection(const Frelon::E2VCorrection&);
 };
 
 }; // namespace Frelon
