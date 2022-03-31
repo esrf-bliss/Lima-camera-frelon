@@ -292,18 +292,18 @@ class ShutterCtrlObj : HwShutterCtrlObj
 	ShutterCtrlObj(Frelon::Camera& cam);
 	virtual ~ShutterCtrlObj();
 
-	virtual bool checkMode(ShutterMode shut_mode);
-	virtual void getModeList(ShutterModeList&  mode_list /Out/);
+	virtual bool checkMode(ShutterMode shut_mode) const;
+	virtual void getModeList(ShutterModeList&  mode_list /Out/) const;
 	virtual void setMode(ShutterMode  shut_mode);
-	virtual void getMode(ShutterMode& shut_mode /Out/);
+	virtual void getMode(ShutterMode& shut_mode /Out/) const;
 
 	virtual void setState(bool  shut_open);
-	virtual void getState(bool& shut_open /Out/);
+	virtual void getState(bool& shut_open /Out/) const;
 
 	virtual void setOpenTime (double  shut_open_time);
-	virtual void getOpenTime (double& shut_open_time /Out/);
+	virtual void getOpenTime (double& shut_open_time /Out/) const;
 	virtual void setCloseTime(double  shut_close_time);
-	virtual void getCloseTime(double& shut_close_time /Out/);
+	virtual void getCloseTime(double& shut_close_time /Out/) const;
 
  private:
 	ShutterCtrlObj(const Frelon::ShutterCtrlObj&);
