@@ -134,6 +134,9 @@ class Camera
 	void unregisterDeadTimeChangedCallback(Frelon::DeadTimeChangedCallback& cb);
 	void registerMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
 	void unregisterMaxImageSizeCallback(HwMaxImageSizeCallback& cb);
+
+ private:
+	Camera(const Frelon::Camera&);
 };
 
 

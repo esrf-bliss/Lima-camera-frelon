@@ -49,6 +49,9 @@ class Firmware
 	static const Frelon::Firmware v3_0i;
 	static const Frelon::Firmware v3_1c;
 	static const Frelon::Firmware v4_1;
+
+ private:
+	Firmware(const Frelon::Firmware&);
 };
 
 
@@ -96,7 +99,9 @@ class Model
 	double getPixelSize();
 
 	std::string getName();
-
+	
+ private:
+	Model(const Frelon::Model&);
 };
 
 }; // namespace Frelon

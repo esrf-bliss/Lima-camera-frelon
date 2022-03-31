@@ -36,6 +36,9 @@ public:
 
 protected:
 	virtual void deadTimeChanged(double dead_time) = 0;
+
+private:
+	DeadTimeChangedCallback(const Frelon::DeadTimeChangedCallback&);
 };
 
 
