@@ -229,9 +229,8 @@ void TestFrameCallback::frameInfo2Data(const HwFrameInfoType& frame_info,
 					     << DEB_VAR1(image_type);
 	}
 	
-	Buffer *buffer = new Buffer();
-	buffer->owner = Buffer::MAPPED;
-	buffer->data = (void*)frame_info.frame_ptr;
+	std::function<void(void *)> empty_deleter;
+	BufferBase *buffer = new MappedBuffer(frame_info.frame_ptr, empty_deleter);
 	data.setBuffer(buffer);
 	buffer->unref();
 }
