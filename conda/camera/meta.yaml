@@ -18,22 +18,22 @@ build:
 requirements:
   host:
     - python {{ python }}
-    - sip 4.19* # API v12.7
-    - lima-core 1.10.*
-    - lima-common-espia
+    - lima-sip6 13
+    - lima-core 1.11.*
+    - lima-common-espia 1.11*
   build:
     - cmake
     - ninja
     - {{ compiler('cxx') }}
   run:
     - python
-    - {{ pin_compatible('sip', min_pin='x.x.x', max_pin='x') }}
+    - {{ pin_compatible('lima-sip6', min_pin='x.x.x', max_pin='x') }}
     - {{ pin_compatible('lima-core', max_pin='x.x') }}
     - lima-common-espia
 
 test:
   imports:
-    - Lima.Frelon
+    - lima.frelon
 
 about:
   home: https://github.com/esrf-bliss/Lima

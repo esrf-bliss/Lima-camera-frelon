@@ -1,7 +1,7 @@
 ############################################################################
 # This file is part of LImA, a Library for Image Acquisition
 #
-# Copyright (C) : 2009-2011
+# Copyright (C) : 2009-2026
 # European Synchrotron Radiation Facility
 # BP 220, Grenoble 38043
 # FRANCE
@@ -41,46 +41,46 @@
 #
 import time
 import PyTango
-from Lima import Core
-from Lima import Frelon as FrelonHw
-from Lima.Server import AttrHelper
+from lima import core
+from lima import frelon as FrelonHw
+from lima.server import AttrHelper
 
 EspiaDevNbInvalid = 256
 
-class Frelon(PyTango.Device_4Impl):
+class Frelon(PyTango.LatestDeviceImpl):
 
-    Core.DEB_CLASS(Core.DebModApplication, 'LimaFrelon')
+    core.DEB_CLASS(core.DebModule.DebModApplication, 'LimaFrelon')
 
 
 #------------------------------------------------------------------
 #    Device constructor
 #------------------------------------------------------------------
     def __init__(self,*args) :
-        PyTango.Device_4Impl.__init__(self,*args)
+        PyTango.LatestDeviceImpl.__init__(self,*args)
 
-        self.__ImageMode = {'FRAME TRANSFER': FrelonHw.FTM,
-                            'FULL FRAME': FrelonHw.FFM}
+        self.__ImageMode = {'FRAME TRANSFER': FrelonHw.FrameTransferMode.FTM,
+                            'FULL FRAME': FrelonHw.FrameTransferMode.FFM}
 
         self.__RoiMode = {'NONE' : 0,
-                          'SLOW' : FrelonHw.Slow,
-                          'FAST' : FrelonHw.Fast,
-                          'KINETIC' : FrelonHw.Kinetic}
+                          'SLOW' : FrelonHw.RoiMode.Slow,
+                          'FAST' : FrelonHw.RoiMode.Fast,
+                          'KINETIC' : FrelonHw.RoiMode.Kinetic}
 
-        self.__InputChannel = {'1'       : FrelonHw.Chan1,
-                               '2'       : FrelonHw.Chan2,
-                               '3'       : FrelonHw.Chan3,
-                               '4'       : FrelonHw.Chan4,
-                               '1-2'     : FrelonHw.Chan12,
-                               '3-4'     : FrelonHw.Chan34,
-                               '1-3'     : FrelonHw.Chan13,
-                               '2-4'     : FrelonHw.Chan24,
-                               '1-2-3-4' : FrelonHw.Chan1234}
+        self.__InputChannel = {'1'       : FrelonHw.InputChan.Chan1,
+                               '2'       : FrelonHw.InputChan.Chan2,
+                               '3'       : FrelonHw.InputChan.Chan3,
+                               '4'       : FrelonHw.InputChan.Chan4,
+                               '1-2'     : FrelonHw.InputChan.Chan12,
+                               '3-4'     : FrelonHw.InputChan.Chan34,
+                               '1-3'     : FrelonHw.InputChan.Chan13,
+                               '2-4'     : FrelonHw.InputChan.Chan24,
+                               '1-2-3-4' : FrelonHw.InputChan.Chan1234}
 
         self.__E2VCorrection = {'ON' : True,
                                 'OFF' : False}
 
-        self.__Spb2Config = {'PRECISION' : FrelonHw.SPB2Precision,
-                             'SPEED' : FrelonHw.SPB2Speed}
+        self.__Spb2Config = {'PRECISION' : FrelonHw.SPB2Config.SPB2Precision,
+                             'SPEED' : FrelonHw.SPB2Config.SPB2Speed}
 
         self.__Attribute2FunctionBase = {'image_mode' : 'FrameTransferMode',
                                          'input_channel' : 'InputChan',
@@ -99,13 +99,13 @@ class Frelon(PyTango.Device_4Impl):
 #------------------------------------------------------------------
 #    Device initialization
 #------------------------------------------------------------------
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def init_device(self):
         self.set_state(PyTango.DevState.ON)
         self.get_device_properties(self.get_device_class())
         self.ResetLinkWaitTime = 5	
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def getAttrStringValueList(self, attr_name):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
@@ -114,24 +114,24 @@ class Frelon(PyTango.Device_4Impl):
                          else _FrelonAcq.getFrelonCamera()
         return AttrHelper.get_attr_4u(self, name, obj)
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def execSerialCommand(self, command_string) :
         return _FrelonAcq.execFrelonSerialCmd(command_string)
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def resetLink(self) :
         edev = _FrelonAcq.getEspiaAcqDev()
         edev.resetLink()
         time.sleep(self.ResetLinkWaitTime)
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def latchSeqTimValues(self) :
         cam = _FrelonAcq.getFrelonCamera()
         tm = cam.latchSeqTimValues()
         return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
                 tm.exposure_time, tm.frame_period]
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def measureSeqTimValues(self, timeout) :
         cam = _FrelonAcq.getFrelonCamera()
         if timeout == 0:
@@ -182,7 +182,7 @@ class Frelon(PyTango.Device_4Impl):
         attr.set_value(roi_bin_offset.y)
 
     def write_roi_bin_offset(self,attr) :
-        roi_bin_offset = Core.Point(0, attr.get_write_value())
+        roi_bin_offset = core.Point(0, attr.get_write_value())
         cam = _FrelonAcq.getFrelonCamera()
         cam.setRoiBinOffset(roi_bin_offset)
 
@@ -200,13 +200,13 @@ class Frelon(PyTango.Device_4Impl):
     def read_readout_time(self,attr):
         cam = _FrelonAcq.getFrelonCamera()
         if cam.needSeqTimMeasure():
-            raise Core.Exception('Camera needs SeqTim measurement')
+            raise core.Exception('Camera needs SeqTim measurement')
         attr.set_value(cam.getReadoutTime())
 
     def read_transfer_time(self,attr):
         cam = _FrelonAcq.getFrelonCamera()
         if cam.needSeqTimMeasure():
-            raise Core.Exception('Camera needs SeqTim measurement')
+            raise core.Exception('Camera needs SeqTim measurement')
         attr.set_value(cam.getTransferTime())
 
     def read_need_seq_tim_measure(self,attr):
@@ -383,43 +383,43 @@ FrelonTacoCmdList = {
 
 class FrelonTacoProxy:
 
-    Core.DEB_CLASS(Core.DebModApplication, 'FrelonTacoProxy')
+    core.DEB_CLASS(core.DebModule.DebModApplication, 'FrelonTacoProxy')
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetType(self):
         model = _FrelonAcq.getCameraModel()
         type_nb = ((model.getAdcBits() == 16) and 2016) or 2014
         deb.Return('Getting type: %s' % type_nb)
         return type_nb
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetLstErrMsg(self):
         err_msg = ''
         deb.Return('Getting last err. msg: %s' % err_msg)
         return err_msg
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdSetChannel(self, input_chan):
-        _FrelonAcq.getFrelonCamera().setInputChan(input_chan)
-    
-    @Core.DEB_MEMBER_FUNCT
+        _FrelonAcq.getFrelonCamera().setInputChan(FrelonHw.InputChan(input_chan))
+
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetChannel(self):
-        return _FrelonAcq.getFrelonCamera().getInputChan()
+        return _FrelonAcq.getFrelonCamera().getInputChan().value
     
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdSetHwPar(self, hw_par_str):
         hw_par = map(int, hw_par_str.split())
         deb.Param('Setting hw par: %s' % hw_par)
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         flip_mode, kin_line_beg, kin_stripes, d0, roi_mode_int = hw_par
-        flip = Core.Flip(flip_mode >> 1, flip_mode & 1)
+        flip = core.Flip(flip_mode >> 1, flip_mode & 1)
         control = _FrelonAcq.getGlobalControl()
         ct_image = control.image()
         ct_image.setFlip(flip)
         roi_mode = FrelonHw.RoiMode(roi_mode_int)
         cam = _FrelonAcq.getFrelonCamera()
         cam.setRoiMode(roi_mode)
-        if roi_mode == FrelonHw.Kinetic:
+        if roi_mode == FrelonHw.RoiMode.Kinetic:
             max_frame_dim = _FrelonAcq.getFrameDim(max_dim=True)
             frame_height = max_frame_dim.getSize().getHeight()
             if kin_line_beg + kin_win_size > frame_height:
@@ -432,7 +432,7 @@ class FrelonTacoProxy:
         else:
             deb.Warning('Ingoring Kinetic parameters')
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetHwPar(self):
         control = _FrelonAcq.getGlobalControl()
         ct_image = control.image()
@@ -441,45 +441,45 @@ class FrelonTacoProxy:
         cam = _FrelonAcq.getFrelonCamera()
         roi_mode = cam.getRoiMode()
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
-        hw_par = [flip_mode, kin_line_beg, kin_stripes, 0, roi_mode]
+        hw_par = [flip_mode, kin_line_beg, kin_stripes, 0, roi_mode.value]
         deb.Return('Getting hw par: %s' % hw_par)
         hw_par_str = ' '.join(map(str, hw_par))
         return hw_par_str
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdSetKinetics(self, kinetics):
         deb.Param('Setting the profile: %s' % kinetics)
         if kinetics == 0:
-            ftm = FrelonHw.FFM
+            ftm = FrelonHw.FrameTransferMode.FFM
         elif kinetics == 3:
-            ftm = FrelonHw.FTM
+            ftm = FrelonHw.FrameTransferMode.FTM
         else:
-            raise Core.Exception('Invalid profile value: %s' % kinetics)
+            raise core.Exception('Invalid profile value: %s' % kinetics)
         _FrelonAcq.getFrelonCamera().setFrameTransferMode(ftm)
         
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetKinetics(self):
         ftm = _FrelonAcq.getFrelonCamera().getFrameTransferMode()
-        if ftm == FrelonHw.FTM:
+        if ftm == FrelonHw.FrameTransferMode.FTM:
             kinetics = 3
         else:
             kinetics = 0
         deb.Return('Getting the profile: %s' % kinetics)
         return kinetics
     
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdSetKinWinSize(self, kin_win_size):
         deb.Param('Setting the kinetics window size: %s' % kin_win_size)
         prev_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         self.setKinPars(kin_win_size, kin_line_beg, kin_stripes)
     
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetKinWinSize(self):
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         deb.Return('Getting the kinetics window size: %s' % kin_win_size)
         return kin_win_size
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def setKinPars(self, kin_win_size, kin_line_beg, kin_stripes):
         deb.Param('Setting kin pars: ' +
                   'kin_win_size=%s, kin_line_beg=%s, kin_stripes=%s' % \
@@ -491,19 +491,19 @@ class FrelonTacoProxy:
         if kin_win_size % bin.getY() != 0:
             msg = 'Invalid kinetics window size (%d): ' % kin_win_size + \
                   'must be multiple of vert. bin (%d)' % bin.getY()
-            raise Core.Exception(msg)
+            raise core.Exception(msg)
 
         roi = _FrelonAcq.getRoi()
         roi = roi.getUnbinned(bin)
-        tl = Core.Point(roi.getTopLeft().x, kin_line_beg)
-        size = Core.Size(roi.getSize().getWidth(), kin_win_size)
-        roi = Core.Roi(tl, size)
+        tl = core.Point(roi.getTopLeft().x, kin_line_beg)
+        size = core.Size(roi.getSize().getWidth(), kin_win_size)
+        roi = core.Roi(tl, size)
         roi = roi.getBinned(bin)
         _FrelonAcq.setRoi(roi)
 
         _FrelonAcq.setRoiLineBegin(kin_line_beg)
         
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def getKinPars(self):
         bin = self.getBin()
         roi = _FrelonAcq.getRoi()
@@ -516,7 +516,7 @@ class FrelonTacoProxy:
                    (kin_win_size, kin_line_beg, kin_stripes))
         return kin_win_size, kin_line_beg, kin_stripes
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def getBin(self):
         control = _FrelonAcq.getGlobalControl()
         ct_image = control.image()
@@ -524,17 +524,17 @@ class FrelonTacoProxy:
         deb.Return('Getting binning: %s' % bin)
         return bin
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdCommand(self, cmd):
         return _FrelonAcq.execFrelonSerialCmd(cmd)
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def DevCcdGetChanges(self):
         changes = 0
         deb.Trace('Getting changes: %s' % changes)
         return changes
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def getAutoResetCtStatus(self):
         return True
 

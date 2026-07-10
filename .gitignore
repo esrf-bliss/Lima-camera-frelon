@@ -6,5 +6,6 @@
 \#*\#
 .\#*
 *.pyc
-build/
+build*
 tango/build/
+pyproject.toml
