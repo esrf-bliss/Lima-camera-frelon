@@ -953,6 +953,13 @@ void Interface::resetDefaults()
 	m_bin.setBin(Bin(1));
 	m_roi.setRoi(Roi());
 
+	BufferHelper::Parameters alloc_params;
+	m_buffer.getAllocParameters(alloc_params);
+	if (alloc_params.reqMemSizePercent == 0.0) {
+		alloc_params.reqMemSizePercent = 70.0;
+		m_buffer.setAllocParameters(alloc_params);
+	}
+
 	Size image_size;
 	m_det_info.getMaxImageSize(image_size);
 	ImageType image_type;
