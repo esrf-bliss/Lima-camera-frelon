@@ -1,7 +1,7 @@
 ############################################################################
 # This file is part of LImA, a Library for Image Acquisition
 #
-# Copyright (C) : 2009-2011
+# Copyright (C) : 2009-2026
 # European Synchrotron Radiation Facility
 # BP 220, Grenoble 38043
 # FRANCE
@@ -20,27 +20,27 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 import gc, weakref
-from Lima.Core import *
-from Lima import Espia
-from limafrelon import *
-from processlib import Tasks
+from lima.core import *
+from lima import espia
+from lima.limafrelon import *
+from lima.processlib import Tasks
 
 EspiaDevNbInvalid = 256
 
 class FrelonAcq:
 
-    DEB_CLASS(DebModApplication, 'FrelonAcq')
+    DEB_CLASS(DebModule.DebModApplication, 'FrelonAcq')
 
-    MonitoredSerialCmds = [Frelon.LatencyTime,
-                           Frelon.ShutEnable, Frelon.ShutCloseTime]
+    MonitoredSerialCmds = [Frelon.Reg.LatencyTime,
+                           Frelon.Reg.ShutEnable, Frelon.Reg.ShutCloseTime]
     MonitoredSerialDict = {}
     for x in MonitoredSerialCmds:
-        MonitoredSerialDict[Frelon.Global.RegStrMap()[x]] = x
+        MonitoredSerialDict[Frelon.Global.RegStrMap()[x.value]] = x
     del x
 
     class BinChangedCallback(Frelon.BinChangedCallback):
 
-        DEB_CLASS(DebModApplication, "FrelonAcq.BinChangedCallback")
+        DEB_CLASS(DebModule.DebModApplication, "FrelonAcq.BinChangedCallback")
 
         @DEB_MEMBER_FUNCT
         def __init__(self, e2v_corr_update):
@@ -56,7 +56,7 @@ class FrelonAcq:
 
     class RoiChangedCallback(Frelon.RoiChangedCallback):
 
-        DEB_CLASS(DebModApplication, 'FrelonAcq.RoiChangedCallback')
+        DEB_CLASS(DebModule.DebModApplication, 'FrelonAcq.RoiChangedCallback')
 
         @DEB_MEMBER_FUNCT
         def __init__(self, e2v_corr_update):
@@ -72,16 +72,16 @@ class FrelonAcq:
 
     class E2VCorrectionUpdate:
 
-        DEB_CLASS(DebModApplication, 'FrelonAcq.E2VCorrectionUpdate')
+        DEB_CLASS(DebModule.DebModApplication, 'FrelonAcq.E2VCorrectionUpdate')
 
         @DEB_MEMBER_FUNCT
         def __init__(self, e2v_corr, hw_inter):
             self.m_reg_act = False
             self.m_e2v_corr = e2v_corr
 
-            self.m_det_info_ctrl_obj = hw_inter.getHwCtrlObj(HwCap.DetInfo)
-            self.m_bin_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Bin)
-            self.m_roi_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Roi)
+            self.m_det_info_ctrl_obj = hw_inter.getHwCtrlObj(HwCap.Type.DetInfo)
+            self.m_bin_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Type.Bin)
+            self.m_roi_ctrl_obj      = hw_inter.getHwCtrlObj(HwCap.Type.Roi)
 
             self.m_hw_bin = Bin()
             self.m_bin_cb = FrelonAcq.BinChangedCallback(self)
@@ -141,7 +141,7 @@ class FrelonAcq:
         self.m_bpm_mgr       = Tasks.BpmManager()
         self.m_bpm_task      = Tasks.BpmTask(self.m_bpm_mgr)
 
-        self.m_ser_edev      = Espia.Dev(espia_dev_nb)
+        self.m_ser_edev      = espia.Dev(espia_dev_nb)
         lib_dbg_lvl, drv_dbg_lvl = self.m_ser_edev.getDebugLevels()
         if req_lib_dbg_lvl >= 0:
             lib_dbg_lvl = req_lib_dbg_lvl
@@ -149,20 +149,20 @@ class FrelonAcq:
             drv_dbg_lvl = req_drv_dbg_lvl
         self.m_ser_edev.setDebugLevels(lib_dbg_lvl, drv_dbg_lvl)
 
-        self.m_eserline      = Espia.SerialLine(self.m_ser_edev)
+        self.m_eserline      = espia.SerialLine(self.m_ser_edev)
         self.m_cam           = Frelon.Camera(self.m_eserline)
 
         self.m_acq_edev  = self.m_ser_edev
         model = self.m_cam.getModel()
-        f16 = (model.getChipType() == Frelon.Andanta_CcdFT2k)
+        f16 = (model.getChipType() == Frelon.ChipType.Andanta_CcdFT2k)
         if f16:
             if espia_dev_nb2 not in [None, EspiaDevNbInvalid]:
-                self.m_acq_edev  = Espia.Meta([espia_dev_nb, espia_dev_nb2])
+                self.m_acq_edev  = espia.Meta([espia_dev_nb, espia_dev_nb2])
             else:
                 model.setF16ForceSingle(True);
 
-        self.m_acq           = Espia.Acq(self.m_acq_edev)
-        self.m_buffer_cb_mgr = Espia.BufferMgr(self.m_acq)
+        self.m_acq           = espia.Acq(self.m_acq_edev)
+        self.m_buffer_cb_mgr = espia.BufferMgr(self.m_acq)
         self.m_buffer_mgr    = BufferCtrlMgr(self.m_buffer_cb_mgr)
         self.m_hw_inter      = Frelon.Interface(self.m_acq, self.m_buffer_mgr,
                                                 self.m_cam)
@@ -228,7 +228,7 @@ class FrelonAcq:
     def checkE2VCorrection(self):
         deb.Trace('Checking E2V correction')
         chip_type = self.m_cam.getModel().getChipType()
-        is_e2v = (chip_type == Frelon.E2V_2k)
+        is_e2v = (chip_type == Frelon.ChipType.E2V_2k)
         corr_act = (is_e2v and self.m_e2v_corr_act)
         deb.Param('is_e2v=%s, self.m_e2v_corr_act=%s' % (is_e2v,
                                                          self.m_e2v_corr_act))
@@ -236,7 +236,7 @@ class FrelonAcq:
             return
 
         ct_status = self.m_ct.getStatus()
-        if ct_status.AcquisitionStatus == AcqRunning:
+        if ct_status.AcquisitionStatus == AcqStatus.AcqRunning:
             raise Exception('Acquisition is running')
 
         if corr_act:
@@ -317,7 +317,7 @@ class FrelonAcq:
 
         tl = Point(roi.getTopLeft().x, roi_line_beg)
         tl_aligned = Point(tl)
-        tl_aligned.alignTo(Point(bin), Floor)
+        tl_aligned.alignTo(Point(bin), AlignDir.Floor)
         roi.setTopLeft(tl_aligned)
         roi = roi.getBinned(bin)
         self.m_ct_image.setRoi(roi)
@@ -354,32 +354,32 @@ class FrelonAcq:
     def checkMonitoredSerialCmd(self, cmd):
         ser_line = self.m_cam.getSerialLine()
         msg_part = ser_line.splitMsg(cmd)
-        cstr = msg_part[ser_line.MsgCmd]
-        if cstr not in self.MonitoredSerialDict or msg_part[ser_line.MsgReq]:
+        cstr = msg_part[ser_line.MsgPart.MsgCmd.value]
+        if cstr not in self.MonitoredSerialDict or msg_part[ser_line.MsgPart.MsgReq.value]:
             return
         reg = self.MonitoredSerialDict[cstr]
         try:
-            val = int(msg_part[ser_line.MsgVal])
+            val = int(msg_part[ser_line.MsgPart.MsgVal.value])
             vstr = '=%d' % val
         except:
             val, vstr = None, ''
         deb.Trace("Detected monitored serial command: %s%s" % (cstr, vstr))
-        if reg == Frelon.LatencyTime:
-            hw_sync = self.m_hw_inter.getHwCtrlObj(HwCap.Sync)
+        if reg == Frelon.Reg.LatencyTime:
+            hw_sync = self.m_hw_inter.getHwCtrlObj(HwCap.Type.Sync)
             lat_time = hw_sync.getLatTime()
             deb.Trace("Updating LatTime: %.3f ms" % (lat_time * 1e3))
             ct_acq = self.m_ct.acquisition()
             ct_acq.setLatencyTime(lat_time)
-        elif reg == Frelon.ShutCloseTime:
-            hw_shut = self.m_hw_inter.getHwCtrlObj(HwCap.Shutter)
+        elif reg == Frelon.Reg.ShutCloseTime:
+            hw_shut = self.m_hw_inter.getHwCtrlObj(HwCap.Type.Shutter)
             shut_time = hw_shut.getCloseTime()
             deb.Trace("Updating ShutCloseTime: %.3f ms" % (shut_time * 1e3))
             ct_shut = self.m_ct.shutter()
             ct_shut.setCloseTime(shut_time)
-        elif reg == Frelon.ShutEnable:
-            hw_shut = self.m_hw_inter.getHwCtrlObj(HwCap.Shutter)
+        elif reg == Frelon.Reg.ShutEnable:
+            hw_shut = self.m_hw_inter.getHwCtrlObj(HwCap.Type.Shutter)
             shut_mode = hw_shut.getMode()
-            shut_enable = (((shut_mode == ShutterAutoFrame) and 'AutoFrame')
+            shut_enable = (((shut_mode == ShutterMode.ShutterAutoFrame) and 'AutoFrame')
                                                             or  'Off')
             deb.Trace("Updating ShutEnable: %s" % shut_enable)
             ct_shut = self.m_ct.shutter()
