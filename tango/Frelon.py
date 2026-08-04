@@ -61,7 +61,7 @@ class Frelon(PyTango.LatestDeviceImpl):
         self.__ImageMode = {'FRAME TRANSFER': FrelonHw.FrameTransferMode.FTM,
                             'FULL FRAME': FrelonHw.FrameTransferMode.FFM}
 
-        self.__RoiMode = {'NONE' : 0,
+        self.__RoiMode = {'NONE' : FrelonHw.RoiMode.None_,
                           'SLOW' : FrelonHw.RoiMode.Slow,
                           'FAST' : FrelonHw.RoiMode.Fast,
                           'KINETIC' : FrelonHw.RoiMode.Kinetic}
