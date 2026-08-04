@@ -85,8 +85,7 @@ class Frelon(PyTango.LatestDeviceImpl):
         self.__Attribute2FunctionBase = {'image_mode' : 'FrameTransferMode',
                                          'input_channel' : 'InputChan',
                                          'e2v_correction' : 'E2VCorrectionActive',
-                                         'spb2_config' : 'SPB2Config',
-                                         'seq_status' : 'Status'}
+                                         'spb2_config' : 'SPB2Config'}
 
         self.init_device()
 
@@ -212,6 +211,11 @@ class Frelon(PyTango.LatestDeviceImpl):
     def read_need_seq_tim_measure(self,attr):
         cam = _FrelonAcq.getFrelonCamera()
         attr.set_value(cam.needSeqTimMeasure())
+
+    def read_seq_status(self,attr):
+        cam = _FrelonAcq.getFrelonCamera()
+        status = cam.getStatus()
+        attr.set_value(status.value)
 
 
 class FrelonClass(PyTango.DeviceClass):
