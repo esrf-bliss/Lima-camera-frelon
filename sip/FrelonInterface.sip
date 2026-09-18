@@ -112,6 +112,9 @@ class BufferCtrlObj : HwBufferCtrlObj
 	BufferCtrlObj(BufferCtrlMgr& buffer_mgr);
 	virtual ~BufferCtrlObj();
 
+	virtual void setAllocParameters(const BufferHelper::Parameters& alloc_params);
+	virtual void getAllocParameters(      BufferHelper::Parameters& alloc_params /Out/);
+
 	virtual void setFrameDim(const FrameDim& frame_dim);
 	virtual void getFrameDim(      FrameDim& frame_dim /Out/);
 
