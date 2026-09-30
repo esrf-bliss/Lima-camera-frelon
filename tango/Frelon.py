@@ -40,98 +40,119 @@
 #=============================================================================
 #
 import time
+
 import PyTango
+import tango
+from tango import AttrWriteType, DevState
+from tango.server import Device, attribute, command, device_property
+
 from lima import core
 from lima import frelon as FrelonHw
 from lima.server import AttrHelper
 
 EspiaDevNbInvalid = 256
 
-class Frelon(PyTango.LatestDeviceImpl):
+
+class Frelon(Device):
 
     core.DEB_CLASS(core.DebModule.DebModApplication, 'LimaFrelon')
 
+    _ImageMode = {
+        'FRAME TRANSFER': FrelonHw.FrameTransferMode.FTM,
+        'FULL FRAME': FrelonHw.FrameTransferMode.FFM,
+    }
+    _RoiMode = {
+        'NONE': FrelonHw.RoiMode.None_,
+        'SLOW': FrelonHw.RoiMode.Slow,
+        'FAST': FrelonHw.RoiMode.Fast,
+        'KINETIC': FrelonHw.RoiMode.Kinetic,
+    }
+    _InputChannel = {
+        '1': FrelonHw.InputChan.Chan1,
+        '2': FrelonHw.InputChan.Chan2,
+        '3': FrelonHw.InputChan.Chan3,
+        '4': FrelonHw.InputChan.Chan4,
+        '1-2': FrelonHw.InputChan.Chan12,
+        '3-4': FrelonHw.InputChan.Chan34,
+        '1-3': FrelonHw.InputChan.Chan13,
+        '2-4': FrelonHw.InputChan.Chan24,
+        '1-2-3-4': FrelonHw.InputChan.Chan1234,
+    }
+    _E2VCorrection = {'ON': True, 'OFF': False}
+    _Spb2Config = {
+        'PRECISION': FrelonHw.SPB2Config.SPB2Precision,
+        'SPEED': FrelonHw.SPB2Config.SPB2Speed,
+    }
 
-#------------------------------------------------------------------
-#    Device constructor
-#------------------------------------------------------------------
-    def __init__(self,*args) :
-        PyTango.LatestDeviceImpl.__init__(self,*args)
+    # ------------------------------------------------------------------
+    #    Device properties (initial hardware configuration only - the
+    #    live attributes of the same name below read/write the camera
+    #    directly, they don't share storage with these)
+    # ------------------------------------------------------------------
+    espia_dev_nb = device_property(dtype=int, default_value=0)
+    espia_dev_nb2 = device_property(dtype=int, default_value=EspiaDevNbInvalid)
+    espia_lib_debug_level = device_property(dtype=int, default_value=-1)
+    espia_drv_debug_level = device_property(dtype=int, default_value=-1)
 
-        self.__ImageMode = {'FRAME TRANSFER': FrelonHw.FrameTransferMode.FTM,
-                            'FULL FRAME': FrelonHw.FrameTransferMode.FFM}
-
-        self.__RoiMode = {'NONE' : FrelonHw.RoiMode.None_,
-                          'SLOW' : FrelonHw.RoiMode.Slow,
-                          'FAST' : FrelonHw.RoiMode.Fast,
-                          'KINETIC' : FrelonHw.RoiMode.Kinetic}
-
-        self.__InputChannel = {'1'       : FrelonHw.InputChan.Chan1,
-                               '2'       : FrelonHw.InputChan.Chan2,
-                               '3'       : FrelonHw.InputChan.Chan3,
-                               '4'       : FrelonHw.InputChan.Chan4,
-                               '1-2'     : FrelonHw.InputChan.Chan12,
-                               '3-4'     : FrelonHw.InputChan.Chan34,
-                               '1-3'     : FrelonHw.InputChan.Chan13,
-                               '2-4'     : FrelonHw.InputChan.Chan24,
-                               '1-2-3-4' : FrelonHw.InputChan.Chan1234}
-
-        self.__E2VCorrection = {'ON' : True,
-                                'OFF' : False}
-
-        self.__Spb2Config = {'PRECISION' : FrelonHw.SPB2Config.SPB2Precision,
-                             'SPEED' : FrelonHw.SPB2Config.SPB2Speed}
-
-        self.__Attribute2FunctionBase = {'image_mode' : 'FrameTransferMode',
-                                         'input_channel' : 'InputChan',
-                                         'e2v_correction' : 'E2VCorrectionActive',
-                                         'spb2_config' : 'SPB2Config'}
-
-        self.init_device()
-
-#------------------------------------------------------------------
-#    Device destructor
-#------------------------------------------------------------------
-    def delete_device(self):
-        pass
-
-#------------------------------------------------------------------
-#    Device initialization
-#------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    #    Device initialization
+    # ------------------------------------------------------------------
     @core.DEB_MEMBER_FUNCT
     def init_device(self):
-        self.set_state(PyTango.DevState.ON)
-        self.get_device_properties(self.get_device_class())
-        self.ResetLinkWaitTime = 5	
+        Device.init_device(self)
 
+        # Leagcy code used by AttrHelper.get_attr_string_value_list
+        self.__ImageMode = self._ImageMode
+        self.__RoiMode = self._RoiMode
+        self.__InputChannel = self._InputChannel
+        self.__E2VCorrection = self._E2VCorrection
+        self.__Spb2Config = self._Spb2Config
+
+        self.ResetLinkWaitTime = 5
+
+        self.set_state(DevState.ON)
+
+    # ------------------------------------------------------------------
+    #    Commands
+    # ------------------------------------------------------------------
+    @command(dtype_in=str, dtype_out=(str,))
     @core.DEB_MEMBER_FUNCT
     def getAttrStringValueList(self, attr_name):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
-    def __getattr__(self,name) :
-        obj = _FrelonAcq if name.endswith("e2v_correction") \
-                         else _FrelonAcq.getFrelonCamera()
-        return AttrHelper.get_attr_4u(self, name, obj)
-
+    @command(dtype_in=str, doc_in="command", dtype_out=str, doc_out="return command")
     @core.DEB_MEMBER_FUNCT
-    def execSerialCommand(self, command_string) :
+    def execSerialCommand(self, command_string):
         return _FrelonAcq.execFrelonSerialCmd(command_string)
 
+    @command
     @core.DEB_MEMBER_FUNCT
-    def resetLink(self) :
+    def resetLink(self):
         edev = _FrelonAcq.getEspiaAcqDev()
         edev.resetLink()
         time.sleep(self.ResetLinkWaitTime)
 
+    @command(
+        dtype_out=(float,),
+        doc_out="<readout_time, transfer_time, electronic_shutter_time, "
+        "exposure_time, frame_period>",
+    )
     @core.DEB_MEMBER_FUNCT
-    def latchSeqTimValues(self) :
+    def latchSeqTimValues(self):
         cam = _FrelonAcq.getFrelonCamera()
         tm = cam.latchSeqTimValues()
         return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
                 tm.exposure_time, tm.frame_period]
 
+    @command(
+        dtype_in=float,
+        doc_in="timeout",
+        dtype_out=(float,),
+        doc_out="<readout_time, transfer_time, electronic_shutter_time, "
+        "exposure_time, frame_period>",
+    )
     @core.DEB_MEMBER_FUNCT
-    def measureSeqTimValues(self, timeout) :
+    def measureSeqTimValues(self, timeout):
         cam = _FrelonAcq.getFrelonCamera()
         if timeout == 0:
             timeout = 3
@@ -139,211 +160,227 @@ class Frelon(PyTango.LatestDeviceImpl):
         return [tm.readout_time, tm.transfer_time, tm.electronic_shutter_time,
                 tm.exposure_time, tm.frame_period]
 
-    ## @brief read the espia board id
-    #
-    def read_espia_dev_nb(self,attr) :
-        espia_dev_nb = 0
-        if self.espia_dev_nb:
-            espia_dev_nb = self.espia_dev_nb
-        attr.set_value(espia_dev_nb)
+    # ------------------------------------------------------------------
+    #    Attributes with a name colliding with a device_property
+    # ------------------------------------------------------------------
+    def _espia_dev_nb_fget(self):
+        return self.espia_dev_nb or 0
 
-    def read_espia_dev_nb2(self,attr) :
-        espia_dev_nb2 = -1
+    espia_dev_nb_attr = attribute(
+        name="espia_dev_nb", dtype=int, access=AttrWriteType.READ, fget=_espia_dev_nb_fget
+    )
+
+    def _espia_dev_nb2_fget(self):
         if self.espia_dev_nb2 != EspiaDevNbInvalid:
-            espia_dev_nb2 = self.espia_dev_nb2
-        attr.set_value(espia_dev_nb2)
+            return self.espia_dev_nb2
+        return -1
 
-    def read_espia_lib_debug_level(self,attr) :
+    espia_dev_nb2_attr = attribute(
+        name="espia_dev_nb2", dtype=int, access=AttrWriteType.READ, fget=_espia_dev_nb2_fget
+    )
+
+    def _espia_lib_debug_level_fget(self):
         edev = _FrelonAcq.getEspiaAcqDev()
         lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
-        attr.set_value(lib_deb_lvl)
+        return lib_deb_lvl
 
-    def write_espia_lib_debug_level(self,attr) :
+    def _espia_lib_debug_level_fset(self, value):
         edev = _FrelonAcq.getEspiaAcqDev()
         lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
-        lib_deb_lvl = attr.get_write_value()
-        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
+        edev.setDebugLevels(value, drv_deb_lvl)
 
-    def read_espia_drv_debug_level(self,attr) :
+    espia_lib_debug_level_attr = attribute(
+        name="espia_lib_debug_level",
+        dtype=int,
+        access=AttrWriteType.READ_WRITE,
+        fget=_espia_lib_debug_level_fget,
+        fset=_espia_lib_debug_level_fset,
+    )
+
+    def _espia_drv_debug_level_fget(self):
         edev = _FrelonAcq.getEspiaAcqDev()
         lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
-        attr.set_value(drv_deb_lvl)
+        return drv_deb_lvl
 
-    def write_espia_drv_debug_level(self,attr) :
+    def _espia_drv_debug_level_fset(self, value):
         edev = _FrelonAcq.getEspiaAcqDev()
         lib_deb_lvl, drv_deb_lvl = edev.getDebugLevels()
-        drv_deb_lvl = attr.get_write_value()
-        edev.setDebugLevels(lib_deb_lvl, drv_deb_lvl)
+        edev.setDebugLevels(lib_deb_lvl, value)
 
-    def read_roi_bin_offset(self,attr) :
+    espia_drv_debug_level_attr = attribute(
+        name="espia_drv_debug_level",
+        dtype=int,
+        access=AttrWriteType.READ_WRITE,
+        fget=_espia_drv_debug_level_fget,
+        fset=_espia_drv_debug_level_fset,
+    )
+
+    # ------------------------------------------------------------------
+    #    Attributes with custom read/write logic
+    # ------------------------------------------------------------------
+    def _roi_bin_offset_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
-        roi_bin_offset = cam.getRoiBinOffset()
-        attr.set_value(roi_bin_offset.y)
+        return cam.getRoiBinOffset().y
 
-    def write_roi_bin_offset(self,attr) :
-        roi_bin_offset = core.Point(0, attr.get_write_value())
+    def _roi_bin_offset_fset(self, value):
         cam = _FrelonAcq.getFrelonCamera()
-        cam.setRoiBinOffset(roi_bin_offset)
+        cam.setRoiBinOffset(core.Point(0, value))
 
-    def read_camera_serial(self,attr):
+    roi_bin_offset = attribute(
+        dtype=int,
+        access=AttrWriteType.READ_WRITE,
+        fget=_roi_bin_offset_fget,
+        fset=_roi_bin_offset_fset,
+    )
+
+    def _camera_serial_fget(self):
         model = _FrelonAcq.getCameraModel()
-        serial = model.getSerialNb()
-        attr.set_value("%d" % serial)
+        return "%d" % model.getSerialNb()
 
-    def read_reset_trace_log(self,attr):
+    camera_serial = attribute(dtype=str, access=AttrWriteType.READ, fget=_camera_serial_fget)
+
+    def _reset_trace_log_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
         ser_line = cam.getSerialLine()
-        reset_trace_log = ser_line.getResetTraceLog()
-        attr.set_value(reset_trace_log)
+        return ser_line.getResetTraceLog()
 
-    def read_readout_time(self,attr):
+    reset_trace_log = attribute(
+        dtype=str, max_dim_x=65535, access=AttrWriteType.READ, fget=_reset_trace_log_fget
+    )
+
+    def _readout_time_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
         if cam.needSeqTimMeasure():
             raise core.Exception('Camera needs SeqTim measurement')
-        attr.set_value(cam.getReadoutTime())
+        return cam.getReadoutTime()
 
-    def read_transfer_time(self,attr):
+    readout_time = attribute(dtype=float, access=AttrWriteType.READ, fget=_readout_time_fget)
+
+    def _transfer_time_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
         if cam.needSeqTimMeasure():
             raise core.Exception('Camera needs SeqTim measurement')
-        attr.set_value(cam.getTransferTime())
+        return cam.getTransferTime()
 
-    def read_need_seq_tim_measure(self,attr):
+    transfer_time = attribute(dtype=float, access=AttrWriteType.READ, fget=_transfer_time_fget)
+
+    def _need_seq_tim_measure_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
-        attr.set_value(cam.needSeqTimMeasure())
+        return cam.needSeqTimMeasure()
 
-    def read_seq_status(self,attr):
+    need_seq_tim_measure = attribute(
+        dtype=bool, access=AttrWriteType.READ, fget=_need_seq_tim_measure_fget
+    )
+
+    def _seq_status_fget(self):
         cam = _FrelonAcq.getFrelonCamera()
-        status = cam.getStatus()
-        attr.set_value(status.value)
+        return cam.getStatus().value
 
+    seq_status = attribute(dtype=int, access=AttrWriteType.READ, fget=_seq_status_fget)
 
-class FrelonClass(PyTango.DeviceClass):
+    # naming-convention title-casing can't produce the all-caps "SPB2" in
+    # the real method name (SPB2Config); use explicit fget/fset.
+    def _spb2_config_fget(self):
+        cam = _FrelonAcq.getFrelonCamera()
+        return AttrHelper.getDictKey(self._Spb2Config, cam.getSPB2Config())
 
-    class_property_list = {}
+    def _spb2_config_fset(self, data):
+        value = AttrHelper.getDictValue(self._Spb2Config, data.upper())
+        if value is None:
+            tango.Except.throw_exception(
+                "WrongData", "Wrong value spb2_config: %s" % data.upper(), "LimaCCDs Class"
+            )
+        _FrelonAcq.getFrelonCamera().setSPB2Config(value)
 
-    device_property_list = {
-        'espia_dev_nb':
-        [PyTango.DevShort,
-         "Espia board device number",[]],
-        'espia_dev_nb2':
-        [PyTango.DevShort,
-         "Second Espia board device number",[EspiaDevNbInvalid]],
-        'espia_lib_debug_level':
-        [PyTango.DevLong,
-         "Espia library debug level",[-1]],
-        'espia_drv_debug_level':
-        [PyTango.DevLong,
-         "Espia driver debug level",[-1]],
-        }
+    spb2_config = attribute(
+        dtype=str,
+        access=AttrWriteType.READ_WRITE,
+        fget=_spb2_config_fget,
+        fset=_spb2_config_fset,
+    )
 
-    cmd_list = {
-        'getAttrStringValueList':
-        [[PyTango.DevString, "Attribute name"],
-         [PyTango.DevVarStringArray, "Authorized String value list"]],
-        'execSerialCommand':
-        [[PyTango.DevString,"command"],
-         [PyTango.DevString,"return command"]],
-        'resetLink':
-        [[PyTango.DevVoid,""],
-         [PyTango.DevVoid,""]],
-        'latchSeqTimValues':
-        [[PyTango.DevVoid,""],
-         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
-          "electronic_shutter_time, exposure_time, frame_period>"]],
-        'measureSeqTimValues':
-        [[PyTango.DevDouble,"timeout"],
-         [PyTango.DevVarDoubleArray,"<readout_time, transfer_time, "
-          "electronic_shutter_time, exposure_time, frame_period>"]],
-        }
+    # ------------------------------------------------------------------
+    #    Attributes fully dispatched by naming convention
+    # ------------------------------------------------------------------
+    # naming-convention would compute getImageMode; the underlying hw method
+    # is really named getFrameTransferMode (see the original
+    # Attribute2FunctionBase override).
+    _image_mode_fget, _image_mode_fset = AttrHelper.make_fget_fset(
+        "frame_transfer_mode", lambda self: _FrelonAcq.getFrelonCamera(), enum=_ImageMode
+    )
+    image_mode = attribute(
+        dtype=str,
+        access=AttrWriteType.READ_WRITE,
+        fget=_image_mode_fget,
+        fset=_image_mode_fset,
+    )
 
-    attr_list = {
-        'espia_dev_nb':
-        [[PyTango.DevShort,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'espia_dev_nb2':
-        [[PyTango.DevShort,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'espia_lib_debug_level':
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'espia_drv_debug_level':
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'image_mode' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'input_channel' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'roi_mode' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'roi_bin_offset' :
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'e2v_correction' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'spb2_config' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'seq_status' :
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'readout_time' :
-        [[PyTango.DevFloat,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'transfer_time' :
-        [[PyTango.DevFloat,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'need_seq_tim_measure' :
-        [[PyTango.DevBoolean,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'auto_seq_tim_measure' :
-        [[PyTango.DevBoolean,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE]],
-        'image_count' :
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'missing_ext_start_pulses' :
-        [[PyTango.DevLong,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'camera_serial' :
-        [[PyTango.DevString,
-          PyTango.SCALAR,
-          PyTango.READ]],
-        'reset_trace_log' :
-        [[PyTango.DevString,
-          PyTango.SPECTRUM,
-          PyTango.READ, 65535]],
-        }
+    # naming-convention would compute getInputChannel; the real method is
+    # named getInputChan (see the original Attribute2FunctionBase override).
+    _input_channel_fget, _input_channel_fset = AttrHelper.make_fget_fset(
+        "input_chan", lambda self: _FrelonAcq.getFrelonCamera(), enum=_InputChannel
+    )
+    input_channel = attribute(
+        dtype=str,
+        access=AttrWriteType.READ_WRITE,
+        fget=_input_channel_fget,
+        fset=_input_channel_fset,
+    )
 
-    def __init__(self,name) :
-        PyTango.DeviceClass.__init__(self,name)
-        self.set_type(name)
+    _roi_mode_fget, _roi_mode_fset = AttrHelper.make_fget_fset(
+        "roi_mode", lambda self: _FrelonAcq.getFrelonCamera(), enum=_RoiMode
+    )
+    roi_mode = attribute(
+        dtype=str,
+        access=AttrWriteType.READ_WRITE,
+        fget=_roi_mode_fget,
+        fset=_roi_mode_fset,
+    )
+
+    # naming-convention would compute getE2vCorrection; the real method is
+    # named getE2VCorrectionActive (see the original Attribute2FunctionBase
+    # override) - dispatched on _FrelonAcq itself, not the camera object.
+    _e2v_correction_fget, _e2v_correction_fset = AttrHelper.make_fget_fset(
+        "e2v_correction_active", lambda self: _FrelonAcq, enum=_E2VCorrection
+    )
+    e2v_correction = attribute(
+        dtype=str,
+        access=AttrWriteType.READ_WRITE,
+        fget=_e2v_correction_fget,
+        fset=_e2v_correction_fset,
+    )
+
+    _auto_seq_tim_measure_fget, _auto_seq_tim_measure_fset = AttrHelper.make_fget_fset(
+        "auto_seq_tim_measure", lambda self: _FrelonAcq.getFrelonCamera()
+    )
+    auto_seq_tim_measure = attribute(
+        dtype=bool,
+        access=AttrWriteType.READ_WRITE,
+        fget=_auto_seq_tim_measure_fget,
+        fset=_auto_seq_tim_measure_fset,
+    )
+
+    _image_count_fget, _ = AttrHelper.make_fget_fset(
+        "image_count", lambda self: _FrelonAcq.getFrelonCamera()
+    )
+    image_count = attribute(dtype=int, access=AttrWriteType.READ, fget=_image_count_fget)
+
+    _missing_ext_start_pulses_fget, _ = AttrHelper.make_fget_fset(
+        "missing_ext_start_pulses", lambda self: _FrelonAcq.getFrelonCamera()
+    )
+    missing_ext_start_pulses = attribute(
+        dtype=int, access=AttrWriteType.READ, fget=_missing_ext_start_pulses_fget
+    )
 
 
 #----------------------------------------------------------------------------
 # TACO extensions
 #----------------------------------------------------------------------------
+# Untouched by the tango.server migration - a completely separate legacy
+# TACO protocol export, not part of the PyTango Device pattern at all (see
+# LimaCCDs.py's TacoSpecificName / get_taco_specific_cmd_list_n_proxy_cont).
+# Still references the plain module-level _FrelonAcq global below, so that
+# stays a bare global rather than a Frelon class attribute.
 
 FrelonTacoCmdList = {
 
@@ -358,7 +395,7 @@ FrelonTacoCmdList = {
      [PyTango.DevVoid, ""]],
     'DevCcdGetChannel' :
     [[PyTango.DevVoid, ""],
-     [PyTango.DevLong, "Input channel mode"]], 
+     [PyTango.DevLong, "Input channel mode"]],
     'DevCcdSetHwPar' :
     [[PyTango.DevString, "Flip KinLineBeg KinStripes 0 RoiMode"],
      [PyTango.DevVoid, ""]],
@@ -409,7 +446,7 @@ class FrelonTacoProxy:
     @core.DEB_MEMBER_FUNCT
     def DevCcdGetChannel(self):
         return _FrelonAcq.getFrelonCamera().getInputChan().value
-    
+
     @core.DEB_MEMBER_FUNCT
     def DevCcdSetHwPar(self, hw_par_str):
         hw_par = map(int, hw_par_str.split())
@@ -460,7 +497,7 @@ class FrelonTacoProxy:
         else:
             raise core.Exception('Invalid profile value: %s' % kinetics)
         _FrelonAcq.getFrelonCamera().setFrameTransferMode(ftm)
-        
+
     @core.DEB_MEMBER_FUNCT
     def DevCcdGetKinetics(self):
         ftm = _FrelonAcq.getFrelonCamera().getFrameTransferMode()
@@ -470,13 +507,13 @@ class FrelonTacoProxy:
             kinetics = 0
         deb.Return('Getting the profile: %s' % kinetics)
         return kinetics
-    
+
     @core.DEB_MEMBER_FUNCT
     def DevCcdSetKinWinSize(self, kin_win_size):
         deb.Param('Setting the kinetics window size: %s' % kin_win_size)
         prev_win_size, kin_line_beg, kin_stripes = self.getKinPars()
         self.setKinPars(kin_win_size, kin_line_beg, kin_stripes)
-    
+
     @core.DEB_MEMBER_FUNCT
     def DevCcdGetKinWinSize(self):
         kin_win_size, kin_line_beg, kin_stripes = self.getKinPars()
@@ -490,7 +527,7 @@ class FrelonTacoProxy:
                   (kin_win_size, kin_line_beg, kin_stripes))
         if kin_stripes > 1:
             deb.Warning('Ignoring kin_stripes=%d' % kin_stripes)
-            
+
         bin = self.getBin()
         if kin_win_size % bin.getY() != 0:
             msg = 'Invalid kinetics window size (%d): ' % kin_win_size + \
@@ -506,7 +543,7 @@ class FrelonTacoProxy:
         _FrelonAcq.setRoi(roi)
 
         _FrelonAcq.setRoiLineBegin(kin_line_beg)
-        
+
     @core.DEB_MEMBER_FUNCT
     def getKinPars(self):
         bin = self.getBin()
@@ -558,10 +595,10 @@ def get_control(espia_dev_nb = 0, espia_dev_nb2 = EspiaDevNbInvalid,
        _FrelonAcq = FrelonHw.FrelonAcq(int(espia_dev_nb), int(espia_dev_nb2),
                                        int(espia_lib_debug_level),
                                        int(espia_drv_debug_level))
-    return _FrelonAcq.getGlobalControl() 
+    return _FrelonAcq.getGlobalControl()
 
 def get_tango_specific_class_n_device():
-    return FrelonClass,Frelon
+    return Frelon.TangoClassClass, Frelon
 
 def get_taco_specific_cmd_list_n_proxy_cont():
     return FrelonTacoCmdList,FrelonTacoProxyCont
