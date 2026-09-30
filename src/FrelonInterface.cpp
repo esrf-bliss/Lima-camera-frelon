@@ -181,6 +181,22 @@ BufferCtrlObj::~BufferCtrlObj()
 	DEB_DESTRUCTOR();
 }
 
+void BufferCtrlObj::setAllocParameters(const AllocParameters& alloc_params)
+{
+	DEB_MEMBER_FUNCT();
+	BufferMgr& espia_buffer_mgr =
+		static_cast<BufferMgr&>(m_buffer_mgr.getAcqBufferMgr());
+	espia_buffer_mgr.setAllocParameters(alloc_params);
+}
+
+void BufferCtrlObj::getAllocParameters(AllocParameters& alloc_params)
+{
+	DEB_MEMBER_FUNCT();
+	BufferMgr& espia_buffer_mgr =
+		static_cast<BufferMgr&>(m_buffer_mgr.getAcqBufferMgr());
+	espia_buffer_mgr.getAllocParameters(alloc_params);
+}
+
 void BufferCtrlObj::setFrameDim(const FrameDim& frame_dim)
 {
 	DEB_MEMBER_FUNCT();
@@ -936,6 +952,13 @@ void Interface::resetDefaults()
 	m_cam.setRoiBinOffset(Point(0));
 	m_bin.setBin(Bin(1));
 	m_roi.setRoi(Roi());
+
+	BufferHelper::Parameters alloc_params;
+	m_buffer.getAllocParameters(alloc_params);
+	if (alloc_params.reqMemSizePercent == 0.0) {
+		alloc_params.reqMemSizePercent = 70.0;
+		m_buffer.setAllocParameters(alloc_params);
+	}
 
 	Size image_size;
 	m_det_info.getMaxImageSize(image_size);
